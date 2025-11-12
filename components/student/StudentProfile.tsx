@@ -8,7 +8,7 @@ interface StudentProfileProps {
   student: Student;
   dojo: Dojo;
   onBack: () => void;
-  onUpdateDojo: (dojo: Dojo) => void;
+  onSaveStudent: (student: Student) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
 }
 
@@ -19,14 +19,13 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onUpdateDojo, onViewPublicProfile }) => {
+const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onSaveStudent, onViewPublicProfile }) => {
   const [isFightModalOpen, setIsFightModalOpen] = useState(false);
 
-  const handleAddFight = (fight: Omit<Fight, 'id'>) => {
+  const handleAddFight = async (fight: Omit<Fight, 'id'>) => {
     const newFight: Fight = { ...fight, id: Date.now().toString() };
     const updatedStudent = { ...student, fights: [...student.fights, newFight] };
-    const updatedStudents = dojo.students.map(s => s.id === student.id ? updatedStudent : s);
-    onUpdateDojo({ ...dojo, students: updatedStudents });
+    await onSaveStudent(updatedStudent);
     setIsFightModalOpen(false);
   };
   
@@ -51,8 +50,8 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
       </div>
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">
-        {student.profilePictureUrl ? (
-            <img src={student.profilePictureUrl} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
+        {student.profile_picture_url ? (
+            <img src={student.profile_picture_url} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
         ) : (
             <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
                 <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
@@ -61,7 +60,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
         <div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{student.name}</h2>
             <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
-            <p className="text-gray-600 dark:text-gray-400">Membro da {dojo.name} / {dojo.teamName}</p>
+            <p className="text-gray-600 dark:text-gray-400">Membro da {dojo.name} / {dojo.team_name}</p>
         </div>
       </header>
 
@@ -73,11 +72,11 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
                         Faixa {student.belt.name}
                     </p>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Última graduação em: <span className="font-semibold text-gray-700 dark:text-gray-200">{new Date(student.lastGraduationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</span></p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Última graduação em: <span className="font-semibold text-gray-700 dark:text-gray-200">{new Date(student.last_graduation_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span></p>
              </InfoCard>
 
              <InfoCard title="Financeiro (Visível apenas para você)">
-                <p className="text-lg text-gray-800 dark:text-gray-200">Mensalidade: <span className="font-bold text-green-600 dark:text-green-400">R$ {student.tuitionFee.toFixed(2)}</span></p>
+                <p className="text-lg text-gray-800 dark:text-gray-200">Mensalidade: <span className="font-bold text-green-600 dark:text-green-400">R$ {student.tuition_fee.toFixed(2)}</span></p>
                 <div className="mt-4">
                     <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">Status dos pagamentos:</h4>
                     <div className="grid grid-cols-4 gap-2">

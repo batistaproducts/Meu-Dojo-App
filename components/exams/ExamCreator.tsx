@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Dojo, Exam, MartialArt, Belt, ExamExercise } from '../../types';
+import { Exam, MartialArt, Belt, ExamExercise } from '../../types';
 import { MARTIAL_ARTS } from '../../constants';
 import PlusIcon from '../icons/PlusIcon';
 import CloseIcon from '../icons/CloseIcon';
 
 interface ExamCreatorProps {
-  dojo: Dojo;
-  onUpdateDojo: (dojo: Dojo) => void;
+  exams: Exam[];
+  modalities: MartialArt[];
+  onSaveExam: (exam: Omit<Exam, 'dojo_id'>) => Promise<void>;
+  onDeleteExam: (examId: string) => Promise<void>;
 }
 
-const ExamCreator: React.FC<ExamCreatorProps> = ({ dojo, onUpdateDojo }) => {
-  const [selectedArtName, setSelectedArtName] = useState<string>(dojo.modalities[0]?.name || '');
+const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam, onDeleteExam }) => {
+  const [selectedArtName, setSelectedArtName] = useState<string>(modalities[0]?.name || '');
   const [targetBelt, setTargetBelt] = useState<Belt | null>(null);
   const [examName, setExamName] = useState('');
   const [minPassingGrade, setMinPassingGrade] = useState(7);
@@ -38,27 +40,26 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ dojo, onUpdateDojo }) => {
     setCurrentExercise('');
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedArtName || !targetBelt || !examName || exercises.length === 0) {
       alert('Preencha todos os campos, incluindo a graduação e ao menos um exercício.');
       return;
     }
-    const newExam: Exam = {
-      id: Date.now().toString(),
-      martialArtName: selectedArtName,
-      targetBelt,
+    const newExam: Omit<Exam, 'dojo_id'> = {
+      martial_art_name: selectedArtName,
+      target_belt: targetBelt,
       name: examName,
       exercises,
-      minPassingGrade,
+      min_passing_grade: minPassingGrade,
     };
-    onUpdateDojo({ ...dojo, exams: [...dojo.exams, newExam] });
+    await onSaveExam(newExam);
     resetForm();
   };
   
-  const handleDeleteExam = (examId: string) => {
+  const handleDeleteExamWrapper = async (examId: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta prova?")) {
-        onUpdateDojo({ ...dojo, exams: dojo.exams.filter(e => e.id !== examId) });
+        await onDeleteExam(examId);
     }
   }
 
@@ -72,7 +73,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ dojo, onUpdateDojo }) => {
             <div>
               <label htmlFor="art" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Arte Marcial</label>
               <select id="art" value={selectedArtName} onChange={e => { setSelectedArtName(e.target.value); setTargetBelt(null); }} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5">
-                {dojo.modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                {modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
               </select>
             </div>
             
@@ -122,17 +123,17 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ dojo, onUpdateDojo }) => {
       <div className="md:col-span-2">
          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-6">Provas Cadastradas</h2>
-            {dojo.exams.length > 0 ? (
+            {exams.length > 0 ? (
                 <div className="space-y-4">
-                    {dojo.exams.map(exam => (
+                    {exams.map(exam => (
                         <div key={exam.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h3 className="font-bold text-lg text-gray-900 dark:text-white">{exam.name}</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{exam.martialArtName} - Faixa {exam.targetBelt.name}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Nota Mínima: {exam.minPassingGrade}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{exam.martial_art_name} - Faixa {exam.target_belt.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Nota Mínima: {exam.min_passing_grade}</p>
                                 </div>
-                                <button onClick={() => handleDeleteExam(exam.id)} className="text-red-500 hover:text-red-700">
+                                <button onClick={() => handleDeleteExamWrapper(exam.id!)} className="text-red-500 hover:text-red-700">
                                     <CloseIcon className="w-5 h-5"/>
                                 </button>
                             </div>

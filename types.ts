@@ -1,3 +1,5 @@
+import { User as SupabaseUser } from '@supabase/supabase-js';
+
 export interface Belt {
   name: string;
   color: string;
@@ -44,11 +46,7 @@ export interface DiplomaData {
   existingDiplomaImage: string | null;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+export interface User extends SupabaseUser {}
 
 export enum AppStep {
   SELECT_ART,
@@ -60,10 +58,9 @@ export type GeneratedDiploma =
   | { type: 'text'; data: { title: string; body: string } }
   | { type: 'image'; data: { base64: string } };
 
-
-// New Types for Dojo Management
+// Types for Dojo Management refactored for Supabase
 export interface Payment {
-  month: number; // 1-12
+  month: number;
   year: number;
   status: 'paid' | 'open';
 }
@@ -72,7 +69,7 @@ export interface ChampionshipResult {
   id: string;
   name: string;
   date: string;
-  result: string; // e.g., 'Ouro', 'Prata', 'Bronze', 'Participação'
+  result: string;
 }
 
 export interface Fight {
@@ -99,18 +96,19 @@ export interface GraduationHistoryEntry {
 
 
 export interface Student {
-  id: string;
+  id?: string;
+  dojo_id: string;
   name:string;
-  modality: string; // e.g., "Jiu-Jitsu Brasileiro"
+  modality: string;
   belt: Belt;
-  lastGraduationDate: string;
+  last_graduation_date: string;
   degree?: number;
-  tuitionFee: number;
+  tuition_fee: number;
   payments: Payment[];
   championships: ChampionshipResult[];
   fights: Fight[];
-  graduationHistory: GraduationHistoryEntry[];
-  profilePictureUrl?: string;
+  graduation_history: GraduationHistoryEntry[];
+  profile_picture_url?: string;
 }
 
 export interface ExamExercise {
@@ -119,12 +117,13 @@ export interface ExamExercise {
 }
 
 export interface Exam {
-  id: string;
-  martialArtName: string;
-  targetBelt: Belt;
+  id?: string;
+  dojo_id: string;
+  martial_art_name: string;
+  target_belt: Belt;
   name: string;
   exercises: ExamExercise[];
-  minPassingGrade: number;
+  min_passing_grade: number;
 }
 
 export interface StudentGrading {
@@ -134,9 +133,10 @@ export interface StudentGrading {
 }
 
 export interface GraduationEvent {
-  id: string;
+  id?: string;
+  dojo_id: string;
+  exam_id: string;
   date: string;
-  examId: string;
   attendees: StudentGrading[];
   status: 'scheduled' | 'completed';
 }
@@ -144,13 +144,12 @@ export interface GraduationEvent {
 
 export interface Dojo {
   id: string;
-  ownerId: string;
+  owner_id: string;
   name: string;
-  teamName: string;
+  team_name: string;
   modalities: MartialArt[];
-  students: Student[];
-  exams: Exam[];
-  graduationEvents: GraduationEvent[];
-  logoUrl?: string;
-  teamLogoUrl?: string;
+  logo_url?: string;
+  team_logo_url?: string;
 }
+
+export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;

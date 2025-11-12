@@ -1,40 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { Dojo } from '../../types';
 import CloseIcon from '../icons/CloseIcon';
 import UploadIcon from '../icons/UploadIcon';
+import SpinnerIcon from '../icons/SpinnerIcon';
 
 interface DojoSettingsModalProps {
     dojo: Dojo;
     onClose: () => void;
-    onSave: (settings: { logoUrl?: string; teamLogoUrl?: string }) => void;
+    onSave: (logoFile?: File, teamLogoFile?: File) => Promise<void>;
 }
 
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-};
-
 const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, onSave }) => {
-    const [logoUrl, setLogoUrl] = useState(dojo.logoUrl);
-    const [teamLogoUrl, setTeamLogoUrl] = useState(dojo.teamLogoUrl);
+    const [logoPreview, setLogoPreview] = useState(dojo.logo_url);
+    const [teamLogoPreview, setTeamLogoPreview] = useState(dojo.team_logo_url);
+    const [logoFile, setLogoFile] = useState<File | undefined>();
+    const [teamLogoFile, setTeamLogoFile] = useState<File | undefined>();
+    const [loading, setLoading] = useState(false);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (url?: string) => void) => {
-        if (e.target.files && e.target.files[0]) {
-            try {
-                const base64 = await fileToBase64(e.target.files[0]);
-                setter(base64);
-            } catch (error) {
-                console.error("Error converting file", error);
-            }
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setPreview: (url?: string) => void, setFile: (file?: File) => void) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
-    const handleSave = () => {
-        onSave({ logoUrl, teamLogoUrl });
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            await onSave(logoFile, teamLogoFile);
+        } catch (error) {
+            console.error(error);
+            alert("Falha ao salvar configurações.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -51,13 +55,13 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Logo da Academia</label>
                         <div className="flex items-center gap-4">
                             <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                {logoUrl ? <img src={logoUrl} alt="Logo da Academia" className="w-full h-full object-contain rounded-lg" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
+                                {logoPreview ? <img src={logoPreview} alt="Logo da Academia" className="w-full h-full object-contain rounded-lg" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
                             </div>
                             <label htmlFor="logo-upload" className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm">
                                 <UploadIcon className="w-4 h-4" />
                                 <span>Alterar Logo</span>
                             </label>
-                            <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, setLogoUrl)} />
+                            <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setLogoPreview, setLogoFile)} />
                         </div>
                     </div>
 
@@ -66,20 +70,22 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Logo da Equipe</label>
                          <div className="flex items-center gap-4">
                             <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                {teamLogoUrl ? <img src={teamLogoUrl} alt="Logo da Equipe" className="w-full h-full object-cover rounded-full" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
+                                {teamLogoPreview ? <img src={teamLogoPreview} alt="Logo da Equipe" className="w-full h-full object-cover rounded-full" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
                             </div>
                             <label htmlFor="team-logo-upload" className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm">
                                 <UploadIcon className="w-4 h-4" />
                                 <span>Alterar Logo</span>
                             </label>
-                            <input id="team-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, setTeamLogoUrl)} />
+                            <input id="team-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setTeamLogoPreview, setTeamLogoFile)} />
                         </div>
                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Este logo aparecerá sobre a foto dos seus alunos no perfil público deles.</p>
                     </div>
 
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold">Cancelar</button>
-                        <button type="button" onClick={handleSave} className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold">Salvar</button>
+                        <button type="button" onClick={handleSave} disabled={loading} className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center">
+                            {loading ? <SpinnerIcon className="w-5 h-5" /> : 'Salvar'}
+                        </button>
                     </div>
                 </div>
             </div>

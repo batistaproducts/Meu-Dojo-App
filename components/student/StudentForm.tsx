@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Student, Dojo, Belt, Payment, GraduationHistoryEntry } from '../../types';
+import { Student, MartialArt, Belt, Payment, GraduationHistoryEntry } from '../../types';
 import UserIcon from '../icons/UserIcon';
 import UploadIcon from '../icons/UploadIcon';
 
 interface StudentFormProps {
   student: Student | null;
-  dojo: Dojo;
-  onSave: (student: Student) => void;
+  modalities: MartialArt[];
+  onSave: (student: Omit<Student, 'dojo_id'>, pictureFile?: File) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -20,59 +20,54 @@ const generateLast12Months = (): { month: number, year: number }[] => {
     return dates.reverse();
 };
 
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-    });
-};
-
-const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCancel }) => {
+const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, onCancel }) => {
   const [name, setName] = useState('');
-  const [modality, setModality] = useState(dojo.modalities[0]?.name || '');
+  const [modality, setModality] = useState(modalities[0]?.name || '');
   const [belts, setBelts] = useState<Belt[]>([]);
   const [selectedBelt, setSelectedBelt] = useState<Belt | null>(null);
-  const [lastGraduationDate, setLastGraduationDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tuitionFee, setTuitionFee] = useState(0);
+  const [last_graduation_date, setLastGraduationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tuition_fee, setTuitionFee] = useState(0);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | undefined>(undefined);
+  
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | undefined>(undefined);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | undefined>(undefined);
   
   useEffect(() => {
     if (student) {
       setName(student.name);
       setModality(student.modality);
-      setLastGraduationDate(student.lastGraduationDate);
-      setTuitionFee(student.tuitionFee);
+      setLastGraduationDate(student.last_graduation_date);
+      setTuitionFee(student.tuition_fee);
       setPayments(student.payments);
-      setProfilePictureUrl(student.profilePictureUrl);
+      setProfilePicturePreview(student.profile_picture_url);
     } else {
-        // Init payments for new student
         setPayments(generateLast12Months().map(d => ({...d, status: 'open'})));
     }
   }, [student]);
 
   useEffect(() => {
-    const selectedModality = dojo.modalities.find(m => m.name === modality);
+    const selectedModality = modalities.find(m => m.name === modality);
     const newBelts = selectedModality ? selectedModality.belts : [];
     setBelts(newBelts);
     
     if (student && student.modality === modality) {
         setSelectedBelt(student.belt);
+    } else if (newBelts.length > 0) {
+        setSelectedBelt(newBelts[0]);
     } else {
-        setSelectedBelt(newBelts[0] || null);
+        setSelectedBelt(null);
     }
-  }, [modality, dojo.modalities, student]);
+  }, [modality, modalities, student]);
 
-  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-        try {
-            const base64 = await fileToBase64(e.target.files[0]);
-            setProfilePictureUrl(base64);
-        } catch (error) {
-            console.error("Error converting file to base64", error);
-        }
+  const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePictureFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   }
 
@@ -93,32 +88,32 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
         return;
     }
     
-    const studentData: Student = {
-        id: student ? student.id : Date.now().toString(),
+    const studentData: Omit<Student, 'dojo_id'> = {
+        id: student ? student.id : undefined, // Let Supabase generate ID for new students
         name,
         modality,
         belt: selectedBelt,
-        lastGraduationDate,
-        tuitionFee,
+        last_graduation_date,
+        tuition_fee,
         payments,
-        profilePictureUrl,
+        profile_picture_url: student?.profile_picture_url, // Keep old URL unless new file is uploaded
         championships: student ? student.championships : [],
         fights: student ? student.fights : [],
-        graduationHistory: student ? student.graduationHistory : [],
+        graduation_history: student ? student.graduation_history : [],
     };
 
     if (!student) {
         const initialGraduation: GraduationHistoryEntry = {
             id: Date.now().toString() + '_initial',
-            date: lastGraduationDate,
+            date: last_graduation_date,
             belt: selectedBelt,
             grade: 0, 
             examName: 'Cadastro Inicial',
         };
-        studentData.graduationHistory = [initialGraduation];
+        studentData.graduation_history = [initialGraduation];
     }
 
-    onSave(studentData);
+    onSave(studentData, profilePictureFile);
   };
 
   return (
@@ -128,8 +123,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
       <div className="flex flex-col sm:flex-row gap-6 items-center">
         <div className="flex-shrink-0">
             <label htmlFor="profile-picture-upload" className="cursor-pointer group relative">
-                {profilePictureUrl ? (
-                    <img src={profilePictureUrl} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
+                {profilePicturePreview ? (
+                    <img src={profilePicturePreview} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
                 ) : (
                     <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 group-hover:bg-gray-300 dark:group-hover:bg-gray-600">
                         <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
@@ -149,7 +144,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
             <div>
                 <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
                 <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
-                {dojo.modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                {modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
             </div>
         </div>
@@ -175,11 +170,11 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
        <div className="grid md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="graduationDate" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Data da Última Graduação</label>
-            <input id="graduationDate" type="date" value={lastGraduationDate} onChange={(e) => setLastGraduationDate(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            <input id="graduationDate" type="date" value={last_graduation_date} onChange={(e) => setLastGraduationDate(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
           </div>
           <div>
             <label htmlFor="tuitionFee" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Valor da Mensalidade (R$)</label>
-            <input id="tuitionFee" type="number" value={tuitionFee} onChange={(e) => setTuitionFee(parseFloat(e.target.value))} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            <input id="tuitionFee" type="number" value={tuition_fee} onChange={(e) => setTuitionFee(parseFloat(e.target.value))} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
           </div>
       </div>
 

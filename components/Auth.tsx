@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { User } from '../types';
+import { supabase } from '../services/supabaseClient';
+import SpinnerIcon from './icons/SpinnerIcon';
 
 interface AuthProps {
-    onAuthSuccess: (user: User) => void;
+    onAuthSuccess: () => void;
 }
 
 const InputField: React.FC<{label: string; id: string; type: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean;}> = ({ label, ...props }) => (
@@ -18,42 +19,41 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setMessage('');
+        setLoading(true);
 
         try {
             if (isLogin) {
-                // Handle Login
-                const users: (User & {password: string})[] = JSON.parse(localStorage.getItem('martial_arts_users') || '[]');
-                const user = users.find(u => u.email === email && u.password === password);
-                if (user) {
-                    const { password, ...userToReturn } = user;
-                    onAuthSuccess(userToReturn);
-                } else {
-                    setError('E-mail ou senha inválidos.');
-                }
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                // onAuthStateChange in App.tsx will handle success
             } else {
-                // Handle Register
                 if (!name || !email || !password) {
-                    setError('Por favor, preencha todos os campos.');
-                    return;
+                    throw new Error('Por favor, preencha todos os campos.');
                 }
-                const users: (User & {password: string})[] = JSON.parse(localStorage.getItem('martial_arts_users') || '[]');
-                if (users.some(u => u.email === email)) {
-                    setError('Este e-mail já está cadastrado.');
-                    return;
-                }
-                const newUser = { id: Date.now().toString(), name, email, password };
-                users.push(newUser);
-                localStorage.setItem('martial_arts_users', JSON.stringify(users));
-                const { password: _, ...userToReturn } = newUser;
-                onAuthSuccess(userToReturn);
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: name,
+                        }
+                    }
+                });
+                if (error) throw error;
+                setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
+                setIsLogin(true); // Switch to login view after successful registration
             }
-        } catch (e) {
-            setError('Ocorreu um erro. Por favor, tente novamente.');
-            console.error(e);
+        } catch (err: any) {
+            setError(err.message || 'Ocorreu um erro.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -73,15 +73,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                     <InputField label="Senha" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                    
                     {error && <p className="text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}
+                    {message && <p className="text-green-500 dark:text-green-400 text-sm text-center">{message}</p>}
 
-                    <button type="submit" className="w-full text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-red-400 dark:focus:ring-amber-500 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300">
-                        {isLogin ? 'Entrar' : 'Registrar'}
+                    <button type="submit" disabled={loading} className="w-full text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-red-400 dark:focus:ring-amber-500 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300 disabled:opacity-50 flex justify-center items-center">
+                        {loading ? <SpinnerIcon className="w-6 h-6" /> : (isLogin ? 'Entrar' : 'Registrar')}
                     </button>
                 </form>
 
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-6">
                     {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
-                    <button onClick={() => {setIsLogin(!isLogin); setError('')}} className="font-medium text-red-600 dark:text-amber-400 hover:underline ml-2">
+                    <button onClick={() => {setIsLogin(!isLogin); setError(''); setMessage('')}} className="font-medium text-red-600 dark:text-amber-400 hover:underline ml-2">
                         {isLogin ? 'Cadastre-se' : 'Faça login'}
                     </button>
                 </p>

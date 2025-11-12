@@ -38,8 +38,8 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">
         <div className="relative w-32 h-32">
-            {student.profilePictureUrl ? (
-                <img src={student.profilePictureUrl} alt={student.name} className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
+            {student.profile_picture_url ? (
+                <img src={student.profile_picture_url} alt={student.name} className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
             ) : (
                 <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
                     <UserIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
@@ -75,7 +75,7 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
                 
                 {/* History */}
                 <div className="space-y-0">
-                    {[...student.graduationHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((grad, index, arr) => (
+                    {[...student.graduation_history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((grad, index, arr) => (
                         <div key={grad.id} className="flex items-start gap-4">
                             <div className="flex flex-col items-center h-full">
                                 <div className="w-5 h-5 rounded-full flex-shrink-0" style={{ backgroundColor: grad.belt.color, border: '2px solid rgba(0,0,0,0.2)'}}></div>
@@ -110,9 +110,9 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         
         <div className="lg:col-span-2 space-y-8">
             <InfoCard title="Histórico de Exames">
-                {student.graduationHistory.filter(g => g.examName !== 'Cadastro Inicial').length > 0 ? (
+                {student.graduation_history.filter(g => g.examName !== 'Cadastro Inicial').length > 0 ? (
                     <ul className="space-y-3">
-                        {student.graduationHistory.slice().reverse().map(grad => {
+                        {student.graduation_history.slice().reverse().map(grad => {
                             if (grad.examName === 'Cadastro Inicial') return null;
                             return (
                                 <li key={grad.id} className="flex justify-between items-center bg-gray-100 dark:bg-gray-700/50 p-3 rounded-md">

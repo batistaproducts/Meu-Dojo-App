@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dojo, Student } from '../../types';
+import { Dojo, Student, Exam, StudentGrading } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
@@ -9,13 +9,16 @@ import UserIcon from '../icons/UserIcon';
 import EditIcon from '../icons/EditIcon';
 
 interface DojoManagerProps {
-  initialDojo: Dojo;
-  onUpdateDojo: (dojo: Dojo) => void;
+  dojo: Dojo;
+  students: Student[];
+  exams: Exam[];
+  onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureFile?: File) => Promise<void>;
+  onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
+  onSaveSettings: (logoFile?: File, teamLogoFile?: File) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, onViewPublicProfile }) => {
-  const [dojo, setDojo] = useState<Dojo>(initialDojo);
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile }) => {
   const [view, setView] = useState<'list' | 'profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -39,29 +42,16 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
     setFormStudent(null);
   };
   
-  const handleSaveSettings = (settings: { logoUrl?: string; teamLogoUrl?: string }) => {
-    const updatedDojo = { ...dojo, ...settings };
-    setDojo(updatedDojo);
-    onUpdateDojo(updatedDojo);
+  const handleSaveSettingsWrapper = async (logoFile?: File, teamLogoFile?: File) => {
+    await onSaveSettings(logoFile, teamLogoFile);
     setIsSettingsModalOpen(false);
   };
 
-  const handleSaveStudent = (studentToSave: Student) => {
-    let updatedStudents;
-    const isEditing = dojo.students.some(s => s.id === studentToSave.id);
-
-    if (isEditing) {
-      updatedStudents = dojo.students.map(s => s.id === studentToSave.id ? studentToSave : s);
-    } else {
-      updatedStudents = [...dojo.students, studentToSave];
-    }
-
-    const updatedDojo = { ...dojo, students: updatedStudents };
-    setDojo(updatedDojo);
-    onUpdateDojo(updatedDojo);
+  const handleSaveStudentWrapper = async (studentToSave: Student, pictureFile?: File) => {
+    await onSaveStudent(studentToSave);
     handleCloseForm();
   };
-
+  
   const handleStudentSelection = (studentId: string) => {
     setSelectedStudentIds(prev => {
         const newSelection = new Set(prev);
@@ -76,7 +66,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-        const allIds = new Set(dojo.students.map(s => s.id));
+        const allIds = new Set(students.map(s => s.id!));
         setSelectedStudentIds(allIds);
     } else {
         setSelectedStudentIds(new Set());
@@ -89,17 +79,9 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
     }
   }
 
-  const handleScheduleGraduation = (examId: string, date: string) => {
-    const newGraduationEvent = {
-        id: Date.now().toString(),
-        examId,
-        date,
-        attendees: [...selectedStudentIds].map(id => ({ studentId: id })),
-        status: 'scheduled' as 'scheduled',
-    };
-    const updatedDojo = { ...dojo, graduationEvents: [...dojo.graduationEvents, newGraduationEvent] };
-    setDojo(updatedDojo);
-    onUpdateDojo(updatedDojo);
+  const handleScheduleGraduationWrapper = async (examId: string, date: string) => {
+    const attendees = [...selectedStudentIds].map(id => ({ studentId: id }));
+    await onScheduleGraduation(examId, date, attendees);
     setSelectedStudentIds(new Set());
     setIsGraduationModalOpen(false);
   }
@@ -108,7 +90,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
     return <StudentProfile 
         student={selectedStudent} 
         dojo={dojo} 
-        onUpdateDojo={onUpdateDojo}
+        onSaveStudent={onSaveStudent}
         onBack={() => setView('list')} 
         onViewPublicProfile={onViewPublicProfile}
     />;
@@ -119,7 +101,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
         <div>
             <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">{dojo.name}</h2>
-            <p className="text-gray-600 dark:text-gray-400">Equipe: {dojo.teamName}</p>
+            <p className="text-gray-600 dark:text-gray-400">Equipe: {dojo.team_name}</p>
         </div>
         <div className="flex gap-2 sm:gap-4 flex-wrap">
              <button
@@ -166,11 +148,11 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
                 </tr>
             </thead>
             <tbody>
-                {dojo.students.length > 0 ? dojo.students.map(student => (
-                <tr key={student.id} className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${selectedStudentIds.has(student.id) ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
+                {students.length > 0 ? students.map(student => (
+                <tr key={student.id} className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${selectedStudentIds.has(student.id!) ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
                     <td className="w-4 p-4">
                         <div className="flex items-center">
-                            <input id={`checkbox-${student.id}`} type="checkbox" checked={selectedStudentIds.has(student.id)} onChange={() => handleStudentSelection(student.id)} className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
+                            <input id={`checkbox-${student.id}`} type="checkbox" checked={selectedStudentIds.has(student.id!)} onChange={() => handleStudentSelection(student.id!)} className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
                             <label htmlFor={`checkbox-${student.id}`} className="sr-only">checkbox</label>
                         </div>
                     </td>
@@ -181,7 +163,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
                         {student.belt.name}
                     </span>
                     </td>
-                    <td className="px-6 py-4">{new Date(student.lastGraduationDate + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                    <td className="px-6 py-4">{new Date(student.last_graduation_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                     <td className="px-6 py-4 text-right flex justify-end items-center gap-4">
                     <button onClick={() => handleViewProfile(student)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline" title="Ver Perfil"><UserIcon className="w-5 h-5"/></button>
                     <button onClick={() => handleOpenForm(student)} className="font-medium text-red-600 dark:text-amber-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
@@ -197,14 +179,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
         </div>
       </div>
 
-
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <StudentForm 
               student={formStudent}
-              dojo={dojo}
-              onSave={handleSaveStudent}
+              modalities={dojo.modalities}
+              onSave={handleSaveStudentWrapper}
               onCancel={handleCloseForm}
             />
           </div>
@@ -213,10 +194,10 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
 
       {isGraduationModalOpen && (
         <GraduationModal 
-            students={dojo.students.filter(s => selectedStudentIds.has(s.id))}
-            exams={dojo.exams}
+            students={students.filter(s => selectedStudentIds.has(s.id!))}
+            exams={exams}
             onClose={() => setIsGraduationModalOpen(false)}
-            onSchedule={handleScheduleGraduation}
+            onSchedule={handleScheduleGraduationWrapper}
         />
       )}
       
@@ -224,7 +205,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
         <DojoSettingsModal
             dojo={dojo}
             onClose={() => setIsSettingsModalOpen(false)}
-            onSave={handleSaveSettings}
+            onSave={handleSaveSettingsWrapper}
         />
       )}
     </div>

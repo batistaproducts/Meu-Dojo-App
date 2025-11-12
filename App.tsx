@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { AppStep, DiplomaData, MartialArt, User, GeneratedDiploma, Dojo, Student } from './types';
+import { supabase } from './services/supabaseClient';
+// FIX: Import 'Fight' and 'GraduationHistoryEntry' types.
+import { AppStep, DiplomaData, MartialArt, User, GeneratedDiploma, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry } from './types';
 import { MARTIAL_ARTS } from './constants';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
@@ -13,22 +16,35 @@ import GradingView from './components/grading/GradingView';
 import PublicStudentProfile from './components/student/PublicStudentProfile';
 import { generateDiplomaVariations } from './services/geminiService';
 import Header from './components/layout/Header';
+import SpinnerIcon from './components/icons/SpinnerIcon';
 
 export type AppView = 'dashboard' | 'dojo_manager' | 'diploma_generator' | 'exams' | 'grading' | 'public_profile';
 
 const App: React.FC = () => {
-  const [step, setStep] = useState<AppStep>(AppStep.SELECT_ART);
+  // Global State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [theme, setTheme] = useState('dark');
+
+  // Dojo Data State
+  const [dojo, setDojo] = useState<Dojo | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
+
+  // UI/Navigation State
+  const [view, setView] = useState<AppView>('dashboard');
+  const [publicProfileStudent, setPublicProfileStudent] = useState<Student | null>(null);
+  
+  // Diploma Generator State
+  const [diplomaStep, setDiplomaStep] = useState<AppStep>(AppStep.SELECT_ART);
   const [selectedArt, setSelectedArt] = useState<MartialArt | null>(null);
   const [diplomaData, setDiplomaData] = useState<DiplomaData | null>(null);
   const [generatedDiplomas, setGeneratedDiplomas] = useState<GeneratedDiploma[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [view, setView] = useState<AppView>('dashboard');
-  const [publicProfileStudent, setPublicProfileStudent] = useState<Student | null>(null);
-  const [dojo, setDojo] = useState<Dojo | null>(null);
-  const [theme, setTheme] = useState('dark');
 
+  // --- Effects ---
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setTheme(savedTheme);
@@ -36,22 +52,173 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('martial_arts_user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
-        const storedDojo = localStorage.getItem(`dojo_${user.id}`);
-        if(storedDojo) {
-          setDojo(JSON.parse(storedDojo));
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+      if (!session) {
+        setDojo(null);
+        setStudents([]);
+        setExams([]);
+        setGraduationEvents([]);
+        setView('dashboard');
       }
-    } catch (e) {
-      console.error("Failed to parse from localStorage", e);
-      localStorage.clear();
-    }
+      setSessionChecked(true);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser]);
+
+  // --- Data Fetching ---
+  const fetchData = async () => {
+    if (!currentUser) return;
+    setIsLoading(true);
+    try {
+      const { data: dojoData, error: dojoError } = await supabase
+        .from('dojos')
+        .select('*')
+        .eq('owner_id', currentUser.id)
+        .single();
+      
+      if (dojoError && dojoError.code !== 'PGRST116') throw dojoError;
+
+      if (dojoData) {
+        setDojo(dojoData);
+        const [studentsRes, examsRes, eventsRes] = await Promise.all([
+          supabase.from('students').select('*').eq('dojo_id', dojoData.id),
+          supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
+          supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id)
+        ]);
+        if (studentsRes.error || examsRes.error || eventsRes.error) throw studentsRes.error || examsRes.error || eventsRes.error;
+        setStudents(studentsRes.data || []);
+        setExams(examsRes.data || []);
+        setGraduationEvents(eventsRes.data || []);
+      } else {
+        setDojo(null);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // --- File Upload Helper ---
+  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {
+    const { data, error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    return publicUrl;
+  };
+
+  // --- Data Handlers ---
+  const handleDojoCreated = async (dojoData: DojoCreationData) => {
+    if (!currentUser) return;
+    const { data, error } = await supabase
+      .from('dojos')
+      .insert({ ...dojoData, owner_id: currentUser.id })
+      .select()
+      .single();
+    if (error) throw error;
+    setDojo(data);
+  };
+
+  const handleSaveSettings = async (logoFile?: File, teamLogoFile?: File) => {
+    if (!dojo) return;
+    let updates: Partial<Dojo> = {};
+    if (logoFile) {
+        updates.logo_url = await uploadFile(logoFile, 'dojo-assets', `${dojo.id}/logo_${Date.now()}`);
+    }
+    if (teamLogoFile) {
+        updates.team_logo_url = await uploadFile(teamLogoFile, 'dojo-assets', `${dojo.id}/teamlogo_${Date.now()}`);
+    }
+    const { data, error } = await supabase.from('dojos').update(updates).eq('id', dojo.id).select().single();
+    if (error) throw error;
+    setDojo(data);
+  };
+
+  const handleSaveStudent = async (studentData: Omit<Student, 'dojo_id'>, pictureFile?: File) => {
+    if (!dojo) return;
+    
+    if (pictureFile) {
+        studentData.profile_picture_url = await uploadFile(pictureFile, 'dojo-assets', `${dojo.id}/students/${studentData.id || Date.now()}`);
+    }
+    
+    const { data, error } = await supabase.from('students').upsert({ ...studentData, dojo_id: dojo.id }).select().single();
+    if (error) throw error;
+
+    setStudents(prev => studentData.id ? prev.map(s => s.id === data.id ? data : s) : [...prev, data]);
+  };
+  
+  const handleAddFight = async (studentId: string, fight: Omit<Fight, 'id'>) => {
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+      const newFight: Fight = { ...fight, id: Date.now().toString() };
+      const updatedFights = [...student.fights, newFight];
+      const { data, error } = await supabase.from('students').update({ fights: updatedFights }).eq('id', studentId).select().single();
+      if(error) throw error;
+      setStudents(prev => prev.map(s => s.id === data.id ? data : s));
+  };
+  
+  const handleSaveExam = async (examData: Omit<Exam, 'dojo_id'>) => {
+      if (!dojo) return;
+      const { data, error } = await supabase.from('exams').upsert({ ...examData, dojo_id: dojo.id }).select().single();
+      if (error) throw error;
+      setExams(prev => examData.id ? prev.map(e => e.id === data.id ? data : e) : [...prev, data]);
+  };
+  
+  const handleDeleteExam = async (examId: string) => {
+      const { error } = await supabase.from('exams').delete().eq('id', examId);
+      if (error) throw error;
+      setExams(prev => prev.filter(e => e.id !== examId));
+  };
+  
+  const handleScheduleGraduation = async (exam_id: string, date: string, attendees: StudentGrading[]) => {
+      if(!dojo) return;
+      const { data, error } = await supabase.from('graduation_events').insert({ dojo_id: dojo.id, exam_id, date, attendees, status: 'scheduled' }).select().single();
+      if(error) throw error;
+      setGraduationEvents(prev => [...prev, data]);
+  };
+
+  const handleFinalizeGrading = async (event: GraduationEvent, updatedAttendees: StudentGrading[]) => {
+      const approvedStudents = students.filter(s => updatedAttendees.find(a => a.studentId === s.id)?.isApproved);
+      const exam = exams.find(e => e.id === event.exam_id);
+      if (!exam) return;
+
+      const studentUpdates = approvedStudents.map(student => {
+          const attendeeInfo = updatedAttendees.find(a => a.studentId === student.id)!;
+          const newHistoryEntry: GraduationHistoryEntry = {
+              id: `${Date.now()}_${student.id}`,
+              date: event.date,
+              belt: exam.target_belt,
+              grade: attendeeInfo.finalGrade!,
+              examName: exam.name,
+          };
+          return supabase.from('students').update({
+              belt: exam.target_belt,
+              last_graduation_date: event.date,
+              graduation_history: [...student.graduation_history, newHistoryEntry]
+          }).eq('id', student.id);
+      });
+
+      const eventUpdate = supabase.from('graduation_events').update({
+          attendees: updatedAttendees,
+          status: 'completed'
+      }).eq('id', event.id!);
+
+      const results = await Promise.all([...studentUpdates, eventUpdate]);
+      // FIX: Cast 'r' to 'any' to allow accessing the 'error' property, fixing the 'unknown' type error.
+      const anyError = results.find((r: any) => r.error);
+      if (anyError) throw anyError.error;
+      
+      await fetchData();
+  };
+
+  // --- UI Handlers ---
   const toggleTheme = () => {
     setTheme(prevTheme => {
         const newTheme = prevTheme === 'dark' ? 'light' : 'dark';
@@ -62,44 +229,21 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (newView: AppView) => {
-    if (newView === 'dashboard') {
-      handleResetApp();
-    } else {
-      setView(newView);
-    }
+    if (newView === 'dashboard') handleResetApp();
+    else setView(newView);
   };
-
+  
   const handleViewPublicProfile = (student: Student) => {
     setPublicProfileStudent(student);
     setView('public_profile');
   }
-
-  const handleArtSelect = (art: MartialArt) => {
-    setSelectedArt(art);
-    setStep(AppStep.FILL_FORM);
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
-
-  const handleFormSubmit = async (data: DiplomaData) => {
-    setDiplomaData(data);
-    setIsLoading(true);
-    setError(null);
-    setStep(AppStep.GENERATE);
-
-    try {
-      if (!selectedArt) throw new Error("Arte marcial não selecionada.");
-      const variations = await generateDiplomaVariations(data, selectedArt);
-      setGeneratedDiplomas(variations);
-    } catch (err) {
-      setError("Falha ao gerar os diplomas. Verifique os dados e a imagem, e tente novamente.");
-      console.error(err);
-      setStep(AppStep.FILL_FORM); 
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  
   const handleDiplomaFlowReset = () => {
-    setStep(AppStep.SELECT_ART);
+    setDiplomaStep(AppStep.SELECT_ART);
     setSelectedArt(null);
     setDiplomaData(null);
     setGeneratedDiplomas([]);
@@ -111,95 +255,84 @@ const App: React.FC = () => {
     setView('dashboard');
   }
 
-  const handleAuthSuccess = (user: User) => {
-    localStorage.setItem('martial_arts_user', JSON.stringify(user));
-    setCurrentUser(user);
-    const storedDojo = localStorage.getItem(`dojo_${user.id}`);
-    if(storedDojo) {
-      setDojo(JSON.parse(storedDojo));
+  // --- Diploma Generation ---
+  const handleArtSelect = (art: MartialArt) => {
+    setSelectedArt(art);
+    setDiplomaStep(AppStep.FILL_FORM);
+  };
+
+  const handleFormSubmit = async (data: DiplomaData) => {
+    setDiplomaData(data);
+    setIsLoading(true);
+    setError(null);
+    setDiplomaStep(AppStep.GENERATE);
+
+    try {
+      if (!selectedArt) throw new Error("Arte marcial não selecionada.");
+      const variations = await generateDiplomaVariations(data, selectedArt);
+      setGeneratedDiplomas(variations);
+    } catch (err: any) {
+      setError("Falha ao gerar os diplomas. Verifique os dados e a imagem, e tente novamente.");
+      console.error(err);
+      setDiplomaStep(AppStep.FILL_FORM); 
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('martial_arts_user');
-    setCurrentUser(null);
-    setDojo(null);
-    handleResetApp();
-  }
-
-  const handleDojoCreated = (newDojo: Dojo) => {
-    const dojoWithExtras = { ...newDojo, exams: [], graduationEvents: [] };
-    localStorage.setItem(`dojo_${newDojo.ownerId}`, JSON.stringify(dojoWithExtras));
-    setDojo(dojoWithExtras);
-  };
-
-  const handleDojoUpdate = (updatedDojo: Dojo) => {
-     localStorage.setItem(`dojo_${updatedDojo.ownerId}`, JSON.stringify(updatedDojo));
-     setDojo(updatedDojo);
-  }
-
+  // --- Render Logic ---
   const renderDiplomaGenerator = () => {
-    switch (step) {
+    switch (diplomaStep) {
       case AppStep.SELECT_ART:
         return <MartialArtSelector arts={MARTIAL_ARTS} onSelect={handleArtSelect} />;
       case AppStep.FILL_FORM:
         if (!selectedArt) return null;
         return <DiplomaForm martialArt={selectedArt} onSubmit={handleFormSubmit} onBack={handleDiplomaFlowReset} />;
       case AppStep.GENERATE:
-        return <DiplomaPreview 
-                  isLoading={isLoading} 
-                  error={error} 
-                  diplomas={generatedDiplomas} 
-                  formData={diplomaData!} 
-                  onReset={handleDiplomaFlowReset} 
-                />;
+        return <DiplomaPreview isLoading={isLoading} error={error} diplomas={generatedDiplomas} formData={diplomaData!} onReset={handleDiplomaFlowReset} />;
       default:
         return <div>Etapa desconhecida</div>;
     }
   }
 
   const renderCurrentView = () => {
+    if (isLoading) {
+      return <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-12 h-12" /></div>;
+    }
+
     if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading')) {
-      return <CreateDojoForm onDojoCreated={handleDojoCreated} currentUser={currentUser!} />;
+      return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager initialDojo={dojo!} onUpdateDojo={handleDojoUpdate} onViewPublicProfile={handleViewPublicProfile}/>;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile}/>;
       case 'diploma_generator':
         return renderDiplomaGenerator();
       case 'exams':
-        return <ExamCreator dojo={dojo!} onUpdateDojo={handleDojoUpdate} />;
+        return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
-        return <GradingView dojo={dojo!} onUpdateDojo={handleDojoUpdate} />;
+        return <GradingView events={graduationEvents} exams={exams} students={students} onFinalizeGrading={handleFinalizeGrading} />;
       case 'public_profile':
         if (!publicProfileStudent || !dojo) return <Dashboard onNavigate={setView} />;
-        return <PublicStudentProfile 
-                  student={publicProfileStudent} 
-                  dojoName={dojo.name} 
-                  teamName={dojo.teamName} 
-                  teamLogoUrl={dojo.teamLogoUrl}
-                  onBack={() => setView('dojo_manager')} 
-                />
+        return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView('dojo_manager')} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;
     }
   };
   
+  if (!sessionChecked) {
+     return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
+  }
+  
   if (!currentUser) {
-    return <Auth onAuthSuccess={handleAuthSuccess} />;
+    return <Auth onAuthSuccess={fetchData} />;
   }
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-       <Header 
-        user={currentUser}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-      />
+       <Header user={currentUser} theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} onLogout={handleLogout} />
       <main className="container mx-auto px-4 py-8">
         {renderCurrentView()}
       </main>

@@ -1,63 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import { Dojo, GraduationEvent, Exam, Student, Belt } from '../../types';
-import DiplomaForm from '../DiplomaForm';
+import { GraduationEvent, Exam, Student, StudentGrading } from '../../types';
 
 interface GradingViewProps {
-  dojo: Dojo;
-  onUpdateDojo: (dojo: Dojo) => void;
+  events: GraduationEvent[];
+  exams: Exam[];
+  students: Student[];
+  onFinalizeGrading: (event: GraduationEvent, updatedAttendees: StudentGrading[]) => Promise<void>;
 }
 
-const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
+const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFinalizeGrading }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [grades, setGrades] = useState<Record<string, number>>({});
     
-    const selectedEvent = useMemo(() => dojo.graduationEvents.find(e => e.id === selectedEventId), [selectedEventId, dojo.graduationEvents]);
-    const selectedExam = useMemo(() => dojo.exams.find(ex => ex.id === selectedEvent?.examId), [selectedEvent, dojo.exams]);
+    const selectedEvent = useMemo(() => events.find(e => e.id === selectedEventId), [selectedEventId, events]);
+    const selectedExam = useMemo(() => exams.find(ex => ex.id === selectedEvent?.exam_id), [selectedEvent, exams]);
 
     const handleGradeChange = (studentId: string, grade: number) => {
         setGrades(prev => ({ ...prev, [studentId]: Math.max(0, Math.min(10, grade)) }));
     };
 
-    const handleFinalizeGrading = () => {
+    const handleFinalizeGradingWrapper = async () => {
         if (!selectedEvent || !selectedExam) return;
 
-        // Update event attendees with grades and approval status
         const updatedAttendees = selectedEvent.attendees.map(attendee => {
             const finalGrade = grades[attendee.studentId];
-            const isApproved = finalGrade !== undefined && finalGrade >= selectedExam.minPassingGrade;
+            const isApproved = finalGrade !== undefined && finalGrade >= selectedExam.min_passing_grade;
             return { ...attendee, finalGrade, isApproved };
         });
 
-        const updatedEvent = { ...selectedEvent, attendees: updatedAttendees, status: 'completed' as 'completed' };
+        await onFinalizeGrading(selectedEvent, updatedAttendees);
 
-        // Update student records for approved students
-        const updatedStudents = dojo.students.map(student => {
-            const attendeeInfo = updatedAttendees.find(a => a.studentId === student.id);
-            if (attendeeInfo?.isApproved) {
-                const newGraduationEntry = {
-                    id: Date.now().toString() + student.id,
-                    date: selectedEvent.date,
-                    belt: selectedExam.targetBelt,
-                    grade: attendeeInfo.finalGrade!,
-                    examName: selectedExam.name,
-                };
-                return {
-                    ...student,
-                    belt: selectedExam.targetBelt,
-                    lastGraduationDate: selectedEvent.date,
-                    graduationHistory: [...student.graduationHistory, newGraduationEntry],
-                };
-            }
-            return student;
-        });
-
-        const updatedDojo: Dojo = {
-            ...dojo,
-            students: updatedStudents,
-            graduationEvents: dojo.graduationEvents.map(e => e.id === selectedEventId ? updatedEvent : e),
-        };
-
-        onUpdateDojo(updatedDojo);
         setSelectedEventId(null);
         setGrades({});
     };
@@ -70,16 +42,16 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h3 className="text-xl font-bold mb-4">Eventos Agendados</h3>
                     <div className="space-y-3">
-                        {dojo.graduationEvents.filter(e => e.status === 'scheduled').map(event => {
-                            const exam = dojo.exams.find(ex => ex.id === event.examId);
+                        {events.filter(e => e.status === 'scheduled').map(event => {
+                            const exam = exams.find(ex => ex.id === event.exam_id);
                             return (
-                                <div key={event.id} onClick={() => setSelectedEventId(event.id)} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                <div key={event.id} onClick={() => setSelectedEventId(event.id!)} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                                     <p className="font-semibold">{exam?.name || 'Prova não encontrada'}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Data: {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')} | Alunos: {event.attendees.length}</p>
                                 </div>
                             )
                         })}
-                        {dojo.graduationEvents.filter(e => e.status === 'scheduled').length === 0 && (
+                        {events.filter(e => e.status === 'scheduled').length === 0 && (
                              <p className="text-center text-gray-400 dark:text-gray-500 py-8">Nenhum evento de graduação agendado.</p>
                         )}
                     </div>
@@ -91,17 +63,17 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h3 className="text-2xl font-bold">{selectedExam.name}</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Data: {new Date(selectedEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')} | Nota Mínima: {selectedExam.minPassingGrade}</p>
+                            <p className="text-gray-500 dark:text-gray-400">Data: {new Date(selectedEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')} | Nota Mínima: {selectedExam.min_passing_grade}</p>
                         </div>
                         <button onClick={() => setSelectedEventId(null)} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">&larr; Voltar</button>
                     </div>
 
                     <div className="space-y-6">
                         {selectedEvent.attendees.map(attendee => {
-                            const student = dojo.students.find(s => s.id === attendee.studentId);
+                            const student = students.find(s => s.id === attendee.studentId);
                             if (!student) return null;
-                            const grade = grades[student.id];
-                            const isApproved = grade !== undefined && grade >= selectedExam.minPassingGrade;
+                            const grade = grades[student.id!];
+                            const isApproved = grade !== undefined && grade >= selectedExam.min_passing_grade;
                             
                             return (
                                 <div key={student.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
@@ -117,7 +89,7 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
                                                 type="number"
                                                 min="0" max="10" step="0.5"
                                                 value={grade || ''}
-                                                onChange={e => handleGradeChange(student.id, parseFloat(e.target.value))}
+                                                onChange={e => handleGradeChange(student.id!, parseFloat(e.target.value))}
                                                 className="w-24 bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg p-2 text-center"
                                             />
                                             {grade !== undefined && (
@@ -133,7 +105,7 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
                     </div>
                     
                     <div className="mt-8 flex justify-end">
-                        <button onClick={handleFinalizeGrading} className="px-6 py-3 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-bold rounded-lg transition-colors">
+                        <button onClick={handleFinalizeGradingWrapper} className="px-6 py-3 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-bold rounded-lg transition-colors">
                             Finalizar e Salvar Graduação
                         </button>
                     </div>
@@ -143,14 +115,14 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
             <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-4">Eventos Concluídos</h3>
                 <div className="space-y-3">
-                    {dojo.graduationEvents.filter(e => e.status === 'completed').map(event => {
-                        const exam = dojo.exams.find(ex => ex.id === event.examId);
+                    {events.filter(e => e.status === 'completed').map(event => {
+                        const exam = exams.find(ex => ex.id === event.exam_id);
                         return (
                             <div key={event.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
                                 <p className="font-semibold">{exam?.name || 'Prova não encontrada'} ({new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')})</p>
                                 <ul className="mt-2 text-sm space-y-1">
                                     {event.attendees.map(attendee => {
-                                        const student = dojo.students.find(s => s.id === attendee.studentId);
+                                        const student = students.find(s => s.id === attendee.studentId);
                                         return (
                                             <li key={attendee.studentId} className={`flex justify-between ${attendee.isApproved ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                                                 <span>{student?.name || 'Aluno não encontrado'}</span>
@@ -162,7 +134,7 @@ const GradingView: React.FC<GradingViewProps> = ({ dojo, onUpdateDojo }) => {
                             </div>
                         )
                     })}
-                     {dojo.graduationEvents.filter(e => e.status === 'completed').length === 0 && (
+                     {events.filter(e => e.status === 'completed').length === 0 && (
                          <p className="text-center text-gray-400 dark:text-gray-500 py-8">Nenhum evento de graduação foi concluído ainda.</p>
                     )}
                 </div>
