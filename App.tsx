@@ -174,7 +174,13 @@ const App: React.FC = () => {
         return <GradingView dojo={dojo!} onUpdateDojo={handleDojoUpdate} />;
       case 'public_profile':
         if (!publicProfileStudent || !dojo) return <Dashboard onNavigate={setView} />;
-        return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.teamName} onBack={() => setView('dojo_manager')} />
+        return <PublicStudentProfile 
+                  student={publicProfileStudent} 
+                  dojoName={dojo.name} 
+                  teamName={dojo.teamName} 
+                  teamLogoUrl={dojo.teamLogoUrl}
+                  onBack={() => setView('dojo_manager')} 
+                />
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;

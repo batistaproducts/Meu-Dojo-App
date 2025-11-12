@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Student, Dojo, Fight } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
 import FightRecordModal from './FightRecordModal';
+import UserIcon from '../icons/UserIcon';
 
 interface StudentProfileProps {
   student: Student;
@@ -49,10 +50,19 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
          </button>
       </div>
 
-      <header className="text-center mb-10">
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{student.name}</h2>
-        <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
-        <p className="text-gray-600 dark:text-gray-400">Membro da {dojo.name} / {dojo.teamName}</p>
+      <header className="text-center mb-10 flex flex-col items-center gap-4">
+        {student.profilePictureUrl ? (
+            <img src={student.profilePictureUrl} alt={student.name} className="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
+        ) : (
+            <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
+                <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+            </div>
+        )}
+        <div>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{student.name}</h2>
+            <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
+            <p className="text-gray-600 dark:text-gray-400">Membro da {dojo.name} / {dojo.teamName}</p>
+        </div>
       </header>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

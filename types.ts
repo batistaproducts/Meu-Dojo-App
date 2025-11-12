@@ -110,6 +110,7 @@ export interface Student {
   championships: ChampionshipResult[];
   fights: Fight[];
   graduationHistory: GraduationHistoryEntry[];
+  profilePictureUrl?: string;
 }
 
 export interface ExamExercise {
@@ -150,4 +151,6 @@ export interface Dojo {
   students: Student[];
   exams: Exam[];
   graduationEvents: GraduationEvent[];
+  logoUrl?: string;
+  teamLogoUrl?: string;
 }

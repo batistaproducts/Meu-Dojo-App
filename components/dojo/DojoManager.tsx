@@ -3,6 +3,7 @@ import { Dojo, Student } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
+import DojoSettingsModal from './DojoSettingsModal';
 import PlusIcon from '../icons/PlusIcon';
 import UserIcon from '../icons/UserIcon';
 import EditIcon from '../icons/EditIcon';
@@ -19,6 +20,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGraduationModalOpen, setIsGraduationModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [formStudent, setFormStudent] = useState<Student | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
 
@@ -35,6 +37,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setFormStudent(null);
+  };
+  
+  const handleSaveSettings = (settings: { logoUrl?: string; teamLogoUrl?: string }) => {
+    const updatedDojo = { ...dojo, ...settings };
+    setDojo(updatedDojo);
+    onUpdateDojo(updatedDojo);
+    setIsSettingsModalOpen(false);
   };
 
   const handleSaveStudent = (studentToSave: Student) => {
@@ -85,7 +94,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
         id: Date.now().toString(),
         examId,
         date,
-        attendees: Array.from(selectedStudentIds).map(id => ({ studentId: id })),
+        attendees: [...selectedStudentIds].map(id => ({ studentId: id })),
         status: 'scheduled' as 'scheduled',
     };
     const updatedDojo = { ...dojo, graduationEvents: [...dojo.graduationEvents, newGraduationEvent] };
@@ -112,18 +121,25 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
             <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">{dojo.name}</h2>
             <p className="text-gray-600 dark:text-gray-400">Equipe: {dojo.teamName}</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-4 flex-wrap">
+             <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-semibold text-sm"
+            >
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              Configurações
+            </button>
             {selectedStudentIds.size > 0 && (
                 <button
                     onClick={handleOpenGraduationModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold text-sm"
                 >
                     Graduar ({selectedStudentIds.size})
                 </button>
             )}
             <button
             onClick={() => handleOpenForm(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold text-sm"
             >
             <PlusIcon className="w-5 h-5" />
             Adicionar Aluno
@@ -201,6 +217,14 @@ const DojoManager: React.FC<DojoManagerProps> = ({ initialDojo, onUpdateDojo, on
             exams={dojo.exams}
             onClose={() => setIsGraduationModalOpen(false)}
             onSchedule={handleScheduleGraduation}
+        />
+      )}
+      
+      {isSettingsModalOpen && (
+        <DojoSettingsModal
+            dojo={dojo}
+            onClose={() => setIsSettingsModalOpen(false)}
+            onSave={handleSaveSettings}
         />
       )}
     </div>

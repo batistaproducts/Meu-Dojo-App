@@ -1,11 +1,13 @@
 import React from 'react';
 import { Student } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
+import UserIcon from '../icons/UserIcon';
 
 interface PublicStudentProfileProps {
   student: Student;
   dojoName: string;
   teamName: string;
+  teamLogoUrl?: string;
   onBack: () => void;
 }
 
@@ -16,7 +18,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, onBack }) => {
+const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack }) => {
     
   const fightRecord = student.fights.reduce((acc, fight) => {
     if (fight.result === 'win') acc.wins++;
@@ -34,10 +36,28 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         </button>
       </div>
 
-      <header className="text-center mb-10">
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{student.name}</h2>
-        <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
-        <p className="text-gray-600 dark:text-gray-400">Membro da {dojoName} / {teamName}</p>
+      <header className="text-center mb-10 flex flex-col items-center gap-4">
+        <div className="relative w-32 h-32">
+            {student.profilePictureUrl ? (
+                <img src={student.profilePictureUrl} alt={student.name} className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
+            ) : (
+                <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
+                    <UserIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                </div>
+            )}
+            {teamLogoUrl && (
+                <img 
+                    src={teamLogoUrl} 
+                    alt={`${teamName} Logo`} 
+                    className="absolute -bottom-1 -right-1 w-12 h-12 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md"
+                />
+            )}
+        </div>
+        <div>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mt-2">{student.name}</h2>
+            <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
+            <p className="text-gray-600 dark:text-gray-400">Membro da {dojoName} / {teamName}</p>
+        </div>
       </header>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

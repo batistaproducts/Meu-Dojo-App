@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Student, Dojo, Belt, Payment, GraduationHistoryEntry } from '../../types';
+import UserIcon from '../icons/UserIcon';
+import UploadIcon from '../icons/UploadIcon';
 
 interface StudentFormProps {
   student: Student | null;
@@ -18,6 +20,15 @@ const generateLast12Months = (): { month: number, year: number }[] => {
     return dates.reverse();
 };
 
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
+};
+
 const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCancel }) => {
   const [name, setName] = useState('');
   const [modality, setModality] = useState(dojo.modalities[0]?.name || '');
@@ -26,6 +37,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
   const [lastGraduationDate, setLastGraduationDate] = useState(new Date().toISOString().split('T')[0]);
   const [tuitionFee, setTuitionFee] = useState(0);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | undefined>(undefined);
   
   useEffect(() => {
     if (student) {
@@ -34,6 +46,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
       setLastGraduationDate(student.lastGraduationDate);
       setTuitionFee(student.tuitionFee);
       setPayments(student.payments);
+      setProfilePictureUrl(student.profilePictureUrl);
     } else {
         // Init payments for new student
         setPayments(generateLast12Months().map(d => ({...d, status: 'open'})));
@@ -51,6 +64,17 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
         setSelectedBelt(newBelts[0] || null);
     }
   }, [modality, dojo.modalities, student]);
+
+  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const base64 = await fileToBase64(e.target.files[0]);
+            setProfilePictureUrl(base64);
+        } catch (error) {
+            console.error("Error converting file to base64", error);
+        }
+    }
+  }
 
   const handlePaymentToggle = (month: number, year: number) => {
     setPayments(prev => {
@@ -77,6 +101,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
         lastGraduationDate,
         tuitionFee,
         payments,
+        profilePictureUrl,
         championships: student ? student.championships : [],
         fights: student ? student.fights : [],
         graduationHistory: student ? student.graduationHistory : [],
@@ -100,17 +125,34 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, dojo, onSave, onCanc
     <form onSubmit={handleSubmit} className="p-8 space-y-6 text-gray-900 dark:text-white">
       <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">{student ? 'Editar Aluno' : 'Adicionar Novo Aluno'}</h3>
       
-      <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-            <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
-          </div>
-          <div>
-            <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
-            <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
-              {dojo.modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
-            </select>
-          </div>
+      <div className="flex flex-col sm:flex-row gap-6 items-center">
+        <div className="flex-shrink-0">
+            <label htmlFor="profile-picture-upload" className="cursor-pointer group relative">
+                {profilePictureUrl ? (
+                    <img src={profilePictureUrl} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
+                ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 group-hover:bg-gray-300 dark:group-hover:bg-gray-600">
+                        <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                    </div>
+                )}
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <UploadIcon className="w-8 h-8 text-white" />
+                </div>
+            </label>
+            <input id="profile-picture-upload" type="file" className="hidden" accept="image/*" onChange={handlePictureUpload} />
+        </div>
+        <div className="w-full grid md:grid-cols-2 gap-6">
+            <div>
+                <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            </div>
+            <div>
+                <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
+                <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
+                {dojo.modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                </select>
+            </div>
+        </div>
       </div>
       
       <div>
