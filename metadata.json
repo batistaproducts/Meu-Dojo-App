@@ -1,0 +1,5 @@
+{
+  "name": "Meu Dojo",
+  "description": "Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.",
+  "requestFramePermissions": []
+}
