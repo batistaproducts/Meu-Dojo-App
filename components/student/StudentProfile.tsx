@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Student, Dojo, Fight } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -12,7 +11,7 @@ interface StudentProfileProps {
   dojo: Dojo;
   onBack: () => void;
   onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
-  onViewPublicProfile: (student: Student) => void;
+  onSwitchToPublicView: () => void;
   onNavigateToDiplomaGenerator: (students: Student[]) => void;
 }
 
@@ -23,7 +22,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onAddFight, onViewPublicProfile, onNavigateToDiplomaGenerator }) => {
+const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onAddFight, onSwitchToPublicView, onNavigateToDiplomaGenerator }) => {
   const [isFightModalOpen, setIsFightModalOpen] = useState(false);
 
   const handleAddFightWrapper = async (fight: Omit<Fight, 'id'>) => {
@@ -52,7 +51,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
                 <CertificateIcon className="w-4 h-4" />
                 Gerar Certificado
             </button>
-            <button onClick={() => onViewPublicProfile(student)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+            <button onClick={onSwitchToPublicView} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                 Ver Perfil Público
             </button>
         </div>

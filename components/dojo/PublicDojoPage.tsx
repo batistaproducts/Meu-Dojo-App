@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dojo, Student, Belt } from '../../types';
 import UserIcon from '../icons/UserIcon';
@@ -38,21 +37,6 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
         <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg relative mb-8 text-center">
             <p className="font-semibold">Você está visualizando sua página pública.</p>
             <p className="text-sm">É assim que os visitantes verão seu perfil.</p>
-            <button
-              onClick={() => {
-                const url = `${window.location.origin}/dojo/${dojo.id}`;
-                navigator.clipboard.writeText(url)
-                  .then(() => alert('Link da página pública copiado!'))
-                  .catch(err => {
-                      console.error('Falha ao copiar o link: ', err);
-                      alert('Não foi possível copiar o link.');
-                  });
-              }}
-              className="mt-3 flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold text-sm mx-auto"
-            >
-              <GlobeIcon className="h-4 w-4" />
-              Copiar Link Público
-            </button>
         </div>
       )}
 
@@ -102,7 +86,7 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
                     </div>
                   )}
                   <h4 className="font-bold mt-3 text-gray-900 dark:text-white">{student.name}</h4>
-                  <p className="text-sm font-semibold" style={{ color: student.belt.color === '#FFFFFF' || student.belt.color === '#FFFF00' ? 'black' : 'white', textShadow: '1px 1px 2px rgba(0,0,0,0.2)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'black', textShadow: '1px 1px 2px rgba(255,255,255,0.6)' }}>
                     Faixa {student.belt.name}
                   </p>
                 </div>

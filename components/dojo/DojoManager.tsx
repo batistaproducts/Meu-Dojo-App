@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dojo, Student, Exam, StudentGrading, Fight } from '../../types';
 import StudentProfile from '../student/StudentProfile';
@@ -12,6 +11,7 @@ import TrashIcon from '../icons/TrashIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import CertificateIcon from '../icons/CertificateIcon';
 import GlobeIcon from '../icons/GlobeIcon';
+import PublicStudentProfile from '../student/PublicStudentProfile';
 
 interface DojoManagerProps {
   dojo: Dojo;
@@ -27,7 +27,7 @@ interface DojoManagerProps {
 }
 
 const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator }) => {
-  const [view, setView] = useState<'list' | 'profile'>('list');
+  const [view, setView] = useState<'list' | 'profile' | 'public_profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGraduationModalOpen, setIsGraduationModalOpen] = useState(false);
@@ -40,6 +40,10 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
   const handleViewProfile = (student: Student) => {
     setSelectedStudent(student);
     setView('profile');
+  };
+  
+  const handleShowPublicProfile = () => {
+    setView('public_profile');
   };
 
   const handleOpenForm = (student: Student | null) => {
@@ -125,10 +129,21 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
         dojo={dojo} 
         onAddFight={onAddFight}
         onBack={() => setView('list')} 
-        onViewPublicProfile={onViewPublicProfile}
+        onSwitchToPublicView={handleShowPublicProfile}
         onNavigateToDiplomaGenerator={onNavigateToDiplomaGenerator}
     />;
   }
+  
+  if (view === 'public_profile' && selectedStudent) {
+    return <PublicStudentProfile
+        student={selectedStudent} 
+        dojoName={dojo.name}
+        teamName={dojo.team_name}
+        teamLogoUrl={dojo.team_logo_url}
+        onBack={() => setView('profile')}
+    />;
+  }
+
 
   return (
     <div className="animate-fade-in">
