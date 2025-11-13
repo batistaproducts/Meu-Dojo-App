@@ -25,6 +25,8 @@ const PublicDojoPageLoader: React.FC<{ dojoIdOrSlug: string }> = ({ dojoIdOrSlug
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const metaDesc = document.querySelector('meta[name="description"]');
+
     const fetchPublicDojoData = async () => {
       try {
         setIsLoading(true);
@@ -39,6 +41,12 @@ const PublicDojoPageLoader: React.FC<{ dojoIdOrSlug: string }> = ({ dojoIdOrSlug
         
         setDojo(dojoData);
 
+        // SEO Update
+        document.title = `Dojo ${dojoData.name} | ${dojoData.team_name}`;
+        if (metaDesc) {
+          metaDesc.setAttribute('content', `Página pública do dojo ${dojoData.name}, equipe ${dojoData.team_name}. Conheça nossas modalidades e atletas.`);
+        }
+
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -49,12 +57,23 @@ const PublicDojoPageLoader: React.FC<{ dojoIdOrSlug: string }> = ({ dojoIdOrSlug
         setStudents(studentsData || []);
       } catch (err: any) {
         setError(err.message);
+        document.title = 'Erro | Meu Dojo';
+        if (metaDesc) {
+          metaDesc.setAttribute('content', 'Não foi possível carregar a página deste dojo.');
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchPublicDojoData();
+
+    return () => {
+        document.title = 'Meu Dojo';
+        if (metaDesc) {
+          metaDesc.setAttribute('content', 'Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.');
+        }
+    };
   }, [dojoIdOrSlug]);
 
   const handleViewPublicProfile = (student: Student) => {
@@ -87,6 +106,8 @@ const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const metaDesc = document.querySelector('meta[name="description"]');
+
         const fetchPublicStudentData = async () => {
             try {
                 setIsLoading(true);
@@ -111,15 +132,32 @@ const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId
                 if (dojoError) throw dojoError;
                 if (!dojoData) throw new Error('Dojo associado não encontrado.');
                 setDojo(dojoData);
+                
+                // SEO Update
+                document.title = `Perfil de ${studentData.name} | ${dojoData.name}`;
+                if (metaDesc) {
+                  metaDesc.setAttribute('content', `Perfil público do atleta ${studentData.name}, praticante de ${studentData.modality} na equipe ${dojoData.team_name}.`);
+                }
 
             } catch (err: any) {
                 setError(err.message);
+                document.title = 'Erro | Meu Dojo';
+                if (metaDesc) {
+                  metaDesc.setAttribute('content', 'Não foi possível carregar o perfil deste aluno.');
+                }
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchPublicStudentData();
+
+        return () => {
+            document.title = 'Meu Dojo';
+            if (metaDesc) {
+              metaDesc.setAttribute('content', 'Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.');
+            }
+        };
     }, [studentId]);
 
     if (isLoading) {
