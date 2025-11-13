@@ -79,10 +79,10 @@ export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): 
     doc.setFillColor(beltColorRGB[0], beltColorRGB[1], beltColorRGB[2]);
     doc.rect(blockX, blockY, blockWidth, blockHeight, 'F');
 
-    // 6. Team Logo (80mm x 80mm, centered vertically)
+    // 6. Team Logo (80mm x 80mm, aligned with top text)
     const logoSize = 80;
     const logoX = pageWidth - margin - logoSize;
-    const logoY = (pageHeight / 2) - (logoSize / 2); // Centered vertically
+    const logoY = 40; // Align with the top declaration text
     
     if (diplomaData.teamLogo) {
         try {
