@@ -59,6 +59,10 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ martialArt, onSubmit, onBack 
       colorScheme: selectedColorScheme,
       customNotes,
       existingDiplomaImage,
+      // Add missing required fields to satisfy the DiplomaData type
+      martialArtName: martialArt.name,
+      dojoLogo: null,
+      dojoLocation: "Local não especificado",
     });
   };
 
@@ -134,7 +138,10 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ martialArt, onSubmit, onBack 
             <div className="grid md:grid-cols-2 gap-8">
                 <div>
                     <label htmlFor="font" className="block mb-2 text-lg font-medium text-gray-700 dark:text-gray-300">Fonte</label>
-                    <select id="font" onChange={(e) => setSelectedFont(DIPLOMA_FONTS.find(f => f.id === e.target.value)!)} value={selectedFont.id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
+                    <select id="font" onChange={(e) => {
+                        const font = DIPLOMA_FONTS.find(f => f.id === e.target.value);
+                        if (font) setSelectedFont(font);
+                    }} value={selectedFont.id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
                         {DIPLOMA_FONTS.map(font => <option key={font.id} value={font.id}>{font.name}</option>)}
                     </select>
                 </div>

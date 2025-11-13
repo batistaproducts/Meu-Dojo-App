@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt } from './types';
@@ -13,6 +12,7 @@ import Header from './components/layout/Header';
 import SpinnerIcon from './components/icons/SpinnerIcon';
 import PublicDojoPage from './components/dojo/PublicDojoPage';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
+import StudentDashboard from './components/student/StudentDashboard';
 
 export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_dojo_page' | 'diploma_generator';
 
@@ -192,10 +192,14 @@ const AuthenticatedApp: React.FC = () => {
   // Global State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dojo Data State
+  // Role-based State
+  const [userRole, setUserRole] = useState<'master' | 'student' | null>(null);
+  const [studentProfile, setStudentProfile] = useState<(Student & { dojos: Dojo | null }) | null>(null);
+
+  // Dojo Data State (for masters)
   const [dojo, setDojo] = useState<Dojo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -209,9 +213,14 @@ const AuthenticatedApp: React.FC = () => {
   
   // --- Effects ---
   useEffect(() => {
+    setSessionChecked(false);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
+      const user = session?.user ?? null;
+      setCurrentUser(user);
       if (!session) {
+        // Reset everything on logout
+        setUserRole(null);
+        setStudentProfile(null);
         setDojo(null);
         setStudents([]);
         setExams([]);
@@ -225,44 +234,95 @@ const AuthenticatedApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      fetchData();
-    }
-  }, [currentUser]);
-
-  // --- Data Fetching ---
-  const fetchData = async () => {
-    if (!currentUser) return;
-    setIsLoading(true);
-    try {
+    const loadUserData = async () => {
+      if (!currentUser) {
+        setUserRole(null);
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      
+      // 1. Is user a dojo owner?
       const { data: dojoData, error: dojoError } = await supabase
         .from('dojos')
         .select('*')
         .eq('owner_id', currentUser.id)
         .single();
       
-      if (dojoError && dojoError.code !== 'PGRST116') throw dojoError;
+      if (dojoError && dojoError.code !== 'PGRST116') {
+        setError("Erro ao buscar dados do dojo: " + dojoError.message);
+        setUserRole(null);
+        setIsLoading(false);
+        return;
+      }
 
       if (dojoData) {
+        // User is a MASTER
         setDojo(dojoData);
         const [studentsRes, examsRes, eventsRes] = await Promise.all([
           supabase.from('students').select('*').eq('dojo_id', dojoData.id),
           supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
           supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id)
         ]);
-        if (studentsRes.error || examsRes.error || eventsRes.error) throw studentsRes.error || examsRes.error || eventsRes.error;
-        setStudents(studentsRes.data || []);
-        setExams(examsRes.data || []);
-        setGraduationEvents(eventsRes.data || []);
+        if (studentsRes.error || examsRes.error || eventsRes.error) {
+            setError( (studentsRes.error || examsRes.error || eventsRes.error)!.message );
+        } else {
+            setStudents(studentsRes.data || []);
+            setExams(examsRes.data || []);
+            setGraduationEvents(eventsRes.data || []);
+        }
+        setUserRole('master');
       } else {
-        setDojo(null);
+        // Not a dojo owner. Are they a STUDENT?
+        if (!currentUser.email) {
+            setUserRole('master');
+            setDojo(null);
+            setIsLoading(false);
+            return;
+        }
+
+        const { data: studentData, error: studentError } = await supabase
+            .from('students')
+            .select('*, dojos(*)')
+            .eq('email', currentUser.email)
+            .single();
+
+        if (studentError && studentError.code !== 'PGRST116') {
+            setError("Erro ao buscar perfil de aluno: " + studentError.message);
+            setUserRole(null);
+            setIsLoading(false);
+            return;
+        }
+        
+        if (studentData) {
+            // User is a STUDENT
+            setUserRole('student');
+            // Link account on first login
+            if (!studentData.user_id) {
+                const { error: updateError } = await supabase
+                    .from('students')
+                    .update({ user_id: currentUser.id })
+                    .eq('id', studentData.id);
+                if (updateError) {
+                  setError("Falha ao vincular conta de aluno: " + updateError.message);
+                } else {
+                  studentData.user_id = currentUser.id;
+                }
+            }
+            setStudentProfile(studentData);
+        } else {
+            // No dojo, no student profile -> new MASTER
+            setUserRole('master');
+            setDojo(null);
+        }
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
       setIsLoading(false);
-    }
-  };
+    };
+
+    loadUserData();
+  }, [currentUser]);
 
   // --- Data Handlers ---
   const handleDojoCreated = async (dojoData: DojoCreationData) => {
@@ -348,7 +408,7 @@ const AuthenticatedApp: React.FC = () => {
   const handleFinalizeGrading = async (event: GraduationEvent, updatedAttendees: StudentGrading[]) => {
       const approvedStudents = students.filter(s => updatedAttendees.find(a => a.studentId === s.id)?.isApproved);
       const exam = exams.find(e => e.id === event.exam_id);
-      if (!exam) return;
+      if (!exam || !dojo) return;
 
       const studentUpdates = approvedStudents.map(student => {
           const attendeeInfo = updatedAttendees.find(a => a.studentId === student.id)!;
@@ -375,7 +435,10 @@ const AuthenticatedApp: React.FC = () => {
       const anyError = results.find(r => r.error);
       if (anyError) throw anyError.error;
       
-      await fetchData();
+      const { data: updatedStudents } = await supabase.from('students').select('*').eq('dojo_id', dojo.id);
+      const { data: updatedEvents } = await supabase.from('graduation_events').select('*').eq('dojo_id', dojo.id);
+      setStudents(updatedStudents || []);
+      setGraduationEvents(updatedEvents || []);
   };
 
   // --- UI Handlers ---
@@ -400,11 +463,7 @@ const AuthenticatedApp: React.FC = () => {
   };
 
   // --- Render Logic ---
-  const renderCurrentView = () => {
-    if (isLoading) {
-      return <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-12 h-12" /></div>;
-    }
-
+  const renderMasterView = () => {
     if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page' || view === 'diploma_generator')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
@@ -431,17 +490,33 @@ const AuthenticatedApp: React.FC = () => {
   }
   
   if (!currentUser) {
-    return <Auth onAuthSuccess={fetchData} />;
+    return <Auth onAuthSuccess={() => {}} />;
   }
 
-  return (
-    <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-       <Header user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} />
-      <main className="container mx-auto px-4 py-8">
-        {renderCurrentView()}
-      </main>
-    </div>
-  );
+  if (isLoading) {
+    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
+  }
+
+  if (error) {
+    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
+  }
+
+  if (userRole === 'student' && studentProfile) {
+    return <StudentDashboard student={studentProfile} user={currentUser} />;
+  }
+  
+  if (userRole === 'master') {
+    return (
+      <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+         <Header user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} />
+        <main className="container mx-auto px-4 py-8">
+          {renderMasterView()}
+        </main>
+      </div>
+    );
+  }
+
+  return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
 };
 
 // --- Main App Router ---

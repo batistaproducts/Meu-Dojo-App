@@ -53,6 +53,8 @@ export interface GraduationHistoryEntry {
 export interface Student {
   id?: string;
   dojo_id: string;
+  user_id?: string | null;
+  email: string;
   name:string;
   modality: string;
   belt: Belt;

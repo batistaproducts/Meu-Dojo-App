@@ -2,8 +2,10 @@
 import React from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { DiplomaData, GeneratedDiploma } from '../types';
+import { DiplomaData, GeneratedDiploma, ColorScheme } from '../types';
 import SpinnerIcon from './icons/SpinnerIcon';
+import { DIPLOMA_COLOR_SCHEMES } from '../constants';
+
 
 interface DiplomaPreviewProps {
   isLoading: boolean;
@@ -42,31 +44,33 @@ const downloadPDF = (elementId: string, studentName: string, variation: number |
 };
 
 const TextDiplomaCard: React.FC<{diploma: {title: string, body: string}, formData: DiplomaData, index: number}> = ({ diploma, formData, index }) => {
-    const isStandard = formData.selectedStyle.id === 'standard';
+    const colorScheme = formData.colorScheme || DIPLOMA_COLOR_SCHEMES[0];
+    const fontClassName = formData.font?.className || 'font-serif';
+    const isStandard = formData.selectedStyle?.id === 'standard';
     const cardId = `diploma-card-${index}`;
 
     return (
         <div className="flex flex-col gap-4">
             <div 
                 id={cardId}
-                className={`text-gray-800 p-8 rounded-lg shadow-lg aspect-[1/1.414] flex flex-col border-4 relative ${formData.font.className} ${isStandard ? 'border-double border-8' : ''}`}
+                className={`text-gray-800 p-8 rounded-lg shadow-lg aspect-[1/1.414] flex flex-col border-4 relative ${fontClassName} ${isStandard ? 'border-double border-8' : ''}`}
                 style={{
-                    backgroundColor: formData.colorScheme.bg,
-                    borderColor: formData.colorScheme.secondary,
-                    color: formData.colorScheme.text,
-                    backgroundImage: isStandard ? `radial-gradient(${formData.colorScheme.secondary} 0.5px, transparent 0.5px)` : 'none',
+                    backgroundColor: colorScheme.bg,
+                    borderColor: colorScheme.secondary,
+                    color: colorScheme.text,
+                    backgroundImage: isStandard ? `radial-gradient(${colorScheme.secondary} 0.5px, transparent 0.5px)` : 'none',
                     backgroundSize: isStandard ? '15px 15px' : 'auto',
                 }}
             >
                 <header className="text-center mb-6 z-10">
                     {formData.teamLogo && <img src={formData.teamLogo} alt="Logo da Equipe" className="h-20 w-20 mx-auto mb-4 object-contain" />}
-                    <h1 className="text-3xl font-bold font-cinzel" style={{ color: formData.colorScheme.primary }}>{diploma.title}</h1>
+                    <h1 className="text-3xl font-bold font-cinzel" style={{ color: colorScheme.primary }}>{diploma.title}</h1>
                 </header>
                 <main className="flex-grow text-center flex items-center justify-center z-10">
                     <p className="text-lg leading-relaxed whitespace-pre-line">
                     {diploma.body
-                        .replace('{NOME_ALUNO}', formData.studentName)
-                        .replace('{FAIXA}', formData.selectedBelt.name)
+                        .replace('{NOME_ALUNO}', formData.studentName || 'Nome do Aluno')
+                        .replace('{FAIXA}', formData.selectedBelt?.name || 'Faixa')
                         .replace('{DATA}', new Date(formData.graduationDate + 'T00:00:00').toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' }))
                         .replace('{EQUIPE}', formData.teamName)
                         .replace('{MESTRE}', formData.masterName)}
@@ -74,16 +78,16 @@ const TextDiplomaCard: React.FC<{diploma: {title: string, body: string}, formDat
                 </main>
                 <footer className="mt-8 flex justify-around items-end z-10">
                     <div className="text-center">
-                        <p className={`${formData.font.className} border-t-2 px-4 pt-1 text-sm`} style={{ borderColor: formData.colorScheme.secondary }}>{formData.masterName}</p>
-                        <p className="text-xs" style={{ color: formData.colorScheme.secondary }}>Mestre</p>
+                        <p className={`${fontClassName} border-t-2 px-4 pt-1 text-sm`} style={{ borderColor: colorScheme.secondary }}>{formData.masterName}</p>
+                        <p className="text-xs" style={{ color: colorScheme.secondary }}>Mestre</p>
                     </div>
                     <div className="text-center">
-                        <p className={`${formData.font.className} border-t-2 px-4 pt-1 text-sm`} style={{ borderColor: formData.colorScheme.secondary }}>{formData.teamName}</p>
-                        <p className="text-xs" style={{ color: formData.colorScheme.secondary }}>Equipe/Dojo</p>
+                        <p className={`${fontClassName} border-t-2 px-4 pt-1 text-sm`} style={{ borderColor: colorScheme.secondary }}>{formData.teamName}</p>
+                        <p className="text-xs" style={{ color: colorScheme.secondary }}>Equipe/Dojo</p>
                     </div>
                 </footer>
             </div>
-            <button onClick={() => downloadPDF(cardId, formData.studentName, index + 1)} className="w-full text-white bg-green-600 hover:bg-green-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
+            <button onClick={() => downloadPDF(cardId, formData.studentName || 'aluno', index + 1)} className="w-full text-white bg-green-600 hover:bg-green-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
                 Download PDF (Variação {index + 1})
             </button>
         </div>
@@ -97,7 +101,7 @@ const ImageDiplomaCard: React.FC<{diploma: {base64: string}, formData: DiplomaDa
             <div id={cardId} style={{backgroundColor: '#fff'}}>
                  <img src={diploma.base64} alt="Diploma Gerado" className="w-full h-auto rounded-lg shadow-lg" />
             </div>
-            <button onClick={() => downloadPDF(cardId, formData.studentName, 'IA')} className="w-full text-white bg-green-600 hover:bg-green-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
+            <button onClick={() => downloadPDF(cardId, formData.studentName || 'aluno', 'IA')} className="w-full text-white bg-green-600 hover:bg-green-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
                 Download PDF (Versão IA)
             </button>
         </div>
@@ -112,7 +116,7 @@ const DiplomaPreview: React.FC<DiplomaPreviewProps> = ({ isLoading, error, diplo
         <SpinnerIcon className="w-16 h-16 mx-auto text-red-700 dark:text-amber-400" />
         <h2 className="text-2xl font-semibold mt-4">Gerando Variações...</h2>
         <p className="text-gray-500 dark:text-gray-400">Aguarde, a IA está criando os diplomas.</p>
-        {formData.selectedStyle.id === 'custom' && <p className="text-gray-600 dark:text-gray-500 text-sm mt-2">(A geração de imagem pode levar um pouco mais de tempo)</p>}
+        {formData.selectedStyle?.id === 'custom' && <p className="text-gray-600 dark:text-gray-500 text-sm mt-2">(A geração de imagem pode levar um pouco mais de tempo)</p>}
       </div>
     );
   }

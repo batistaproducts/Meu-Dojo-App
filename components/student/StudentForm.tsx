@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Student, MartialArt, Belt, Payment, GraduationHistoryEntry } from '../../types';
 import UserIcon from '../icons/UserIcon';
@@ -23,6 +22,7 @@ const generateLast12Months = (): { month: number, year: number }[] => {
 
 const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, onCancel }) => {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [modality, setModality] = useState(modalities[0]?.name || '');
   const [belts, setBelts] = useState<Belt[]>([]);
   const [selectedBelt, setSelectedBelt] = useState<Belt | null>(null);
@@ -35,6 +35,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
   useEffect(() => {
     if (student) {
       setName(student.name);
+      setEmail(student.email || '');
       setModality(student.modality);
       setLastGraduationDate(student.last_graduation_date);
       setTuitionFee(student.tuition_fee);
@@ -82,14 +83,16 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !modality || !selectedBelt) {
-        alert('Por favor, preencha os campos obrigatórios.');
+    if (!name || !email || !modality || !selectedBelt) {
+        alert('Por favor, preencha os campos obrigatórios (Nome, Email, Modalidade e Graduação).');
         return;
     }
     
     const studentData: Omit<Student, 'dojo_id'> = {
         id: student ? student.id : undefined,
+        user_id: student ? student.user_id : undefined,
         name,
+        email,
         modality,
         belt: selectedBelt,
         last_graduation_date,
@@ -139,6 +142,11 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
             <div>
                 <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
                 <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            </div>
+            <div>
+                <label htmlFor="studentEmail" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Email (para login do aluno)</label>
+                <input id="studentEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={!!student?.user_id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="email@doaluno.com" />
+                {student?.user_id && <p className="text-xs text-gray-400 mt-1">Email não pode ser alterado (login vinculado).</p>}
             </div>
             <div>
                 <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
