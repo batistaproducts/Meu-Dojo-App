@@ -14,81 +14,97 @@ const hexToRgb = (hex: string): [number, number, number] | null => {
         : null;
 };
 
+// jsPDF uses points for font sizes. Conversion: points = pixels * 0.75
+const pxToPt = (px: number) => px * 0.75;
+
 export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): string => {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageWidth = 297;
     const pageHeight = 210;
-
-    const beltColor = student.belt.color;
-    const beltColorRGB = hexToRgb(beltColor) || [128, 0, 128]; // Default to purple if conversion fails
+    const margin = 20;
 
     // White background
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
     doc.setTextColor(0, 0, 0);
 
-    // Declaration Text
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    // 1. Declaration Text (Verdana -> Times, 25px)
+    doc.setFont('times', 'normal');
+    doc.setFontSize(pxToPt(25));
     const declarationText = doc.splitTextToSize(
-        `Em reconhecimento à dedicação, disciplina e perseverança demonstradas no aprimoramento das técnicas e filosofia do Jiu-Jitsu Brasileiro.\nO(A) aluno(a) demonstrou o nível de competência técnica e compreensão tática exigido para esta graduação.\n\nEu ${diplomaData.masterName} declaro:`,
-        120
+        `Em reconhecimento à dedicação, disciplina e perseverança demonstradas no aprimoramento das técnicas e filosofia do ${diplomaData.martialArtName}.\nO(A) aluno(a) demonstrou o nível de competência técnica e compreensão tática exigido para esta graduação.\n\nEu ${diplomaData.masterName} declaro:`,
+        140 // max width in mm
     );
-    doc.text(declarationText, 20, 30);
+    doc.text(declarationText, margin, 40);
 
-    // Student Name [ALUNO]
+    // 2. Student Name [ALUNO] (Arial -> Helvetica, 58px)
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(48);
-    doc.text(student.name.toUpperCase(), 20, 110);
+    doc.setFontSize(pxToPt(58));
+    doc.text(student.name.toUpperCase(), margin, 110);
     
-    // Signature lines and Master Name [MESTRE]
+    // 3. Signature lines and Master Name [MESTRE] (Arial -> Helvetica, 35px)
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
-    doc.line(20, 170, 90, 168); // Top line
-    doc.line(25, 173, 95, 171); // Bottom line
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(diplomaData.masterName, 20, 180);
+    doc.line(margin, 170, margin + 70, 168); // Top line
+    doc.line(margin + 5, 173, margin + 75, 171); // Bottom line
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(pxToPt(35));
+    doc.text(diplomaData.masterName.toUpperCase(), margin, 185);
 
-    // Team Logo [LOGOEQUIPE]
+    // 4. Logos (600px -> ~30mm x 30mm)
+    const logoSize = 30;
+    const logoX = pageWidth - margin - logoSize;
     if (diplomaData.teamLogo) {
         try {
-            doc.addImage(diplomaData.teamLogo, 'PNG', 230, 20, 45, 45);
+            doc.addImage(diplomaData.teamLogo, 'PNG', logoX, 30, logoSize, logoSize);
         } catch(e) { console.error("Error adding team logo:", e); }
     }
-
-    // Dojo Logo [LOGODOJO]
     if (diplomaData.dojoLogo) {
         try {
-            doc.addImage(diplomaData.dojoLogo, 'PNG', 230, 90, 45, 45);
+            doc.addImage(diplomaData.dojoLogo, 'PNG', logoX, 80, logoSize, logoSize);
         } catch(e) { console.error("Error adding dojo logo:", e); }
     }
 
-    // Bottom Right Colored Block
-    const blockX = 170, blockY = 140;
-    const blockWidth = pageWidth - blockX - 10;
-    const blockHeight = pageHeight - blockY - 10;
+    // 5. Bottom Right Colored Block
+    const beltColorRGB = hexToRgb(student.belt.color) || [128, 0, 128];
+    const blockWidth = 110;
+    const blockHeight = 60;
+    const blockX = pageWidth - margin - blockWidth;
+    const blockY = pageHeight - margin - blockHeight;
     doc.setFillColor(beltColorRGB[0], beltColorRGB[1], beltColorRGB[2]);
     doc.rect(blockX, blockY, blockWidth, blockHeight, 'F');
 
-    // Text inside the colored block
+    // 6. Text inside the colored block
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const beltNameText = `${student.belt.name.toUpperCase()} DE:`;
-    doc.text(beltNameText, blockX + 5, blockY + 15);
     
-    doc.setFontSize(36);
+    // GRADUACAO DE: (Verdana -> Times, 25px)
+    doc.setFont('times', 'normal');
+    doc.setFontSize(pxToPt(25));
+    const beltNameText = `${student.belt.name.toUpperCase()} DE:`;
+    doc.text(beltNameText, blockX + 5, blockY + 12);
+    
+    // [MODAL] (Arial -> Helvetica, 125px)
     doc.setFont('helvetica', 'bold');
     const artName = diplomaData.martialArtName.toUpperCase();
-    doc.text(artName, blockX + 5, blockY + 30);
+    // Adjust font size if text is too long to fit in the box
+    let modalFontSize = pxToPt(125);
+    const artNameWidth = doc.getTextWidth(artName) * (modalFontSize / doc.getFontSize());
+    if (artNameWidth > (blockWidth - 10)) {
+        modalFontSize = modalFontSize * (blockWidth - 10) / artNameWidth;
+    }
+    doc.setFontSize(modalFontSize);
+    doc.text(artName, blockX + 5, blockY + 40);
     
-    doc.setFontSize(8);
+    // [CIDADE - ESTADO] (Arial -> Helvetica, 25px)
     doc.setFont('helvetica', 'normal');
-    doc.text(diplomaData.dojoLocation.toUpperCase(), blockX + 5, blockY + 45);
+    doc.setFontSize(pxToPt(25));
+    doc.text(diplomaData.dojoLocation.toUpperCase(), blockX + 5, blockY + 55);
     
+    // [DATA] (Verdana -> Times, 25px)
+    doc.setFont('times', 'normal');
+    doc.setFontSize(pxToPt(25));
     const formattedDate = new Date(diplomaData.graduationDate + 'T00:00:00').toLocaleDateString('pt-BR');
-    doc.text(formattedDate, blockX + blockWidth - 5, blockY + 45, { align: 'right' });
+    doc.text(formattedDate, blockX + blockWidth - 5, blockY + 55, { align: 'right' });
 
 
     return doc.output('datauristring');

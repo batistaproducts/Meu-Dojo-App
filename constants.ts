@@ -3,7 +3,7 @@ import { MartialArt, DiplomaStyle, DiplomaFont, ColorScheme } from './types';
 
 export const MARTIAL_ARTS: MartialArt[] = [
   {
-    name: "Jiu-Jitsu Brasileiro",
+    name: "JIU-JITSU Brasileiro",
     image: "https://picsum.photos/seed/bjj/600/400",
     belts: [
       { name: "Branca", color: "#FFFFFF" },
@@ -16,43 +16,29 @@ export const MARTIAL_ARTS: MartialArt[] = [
     ],
   },
   {
-    name: "Karatê",
-    image: "https://picsum.photos/seed/karate/600/400",
+    name: "Muay-Thai",
+    image: "https://picsum.photos/seed/muaythai/600/400",
     belts: [
       { name: "Branca", color: "#FFFFFF" },
       { name: "Amarela", color: "#FFFF00" },
       { name: "Laranja", color: "#FFA500" },
       { name: "Verde", color: "#008000" },
-      { name: "Roxa", color: "#800080" },
+      { name: "Azul", color: "#0000FF" },
       { name: "Marrom", color: "#A52A2A" },
       { name: "Preta", color: "#000000" },
     ],
   },
   {
-    name: "Judô",
-    image: "https://picsum.photos/seed/judo/600/400",
+    name: "Sanda (Wushu)",
+    image: "https://picsum.photos/seed/sanda/600/400",
     belts: [
       { name: "Branca", color: "#FFFFFF" },
-      { name: "Cinza", color: "#808080" },
-      { name: "Azul", color: "#0000FF" },
       { name: "Amarela", color: "#FFFF00" },
       { name: "Laranja", color: "#FFA500" },
       { name: "Verde", color: "#008000" },
+      { name: "Azul", color: "#0000FF" },
       { name: "Roxa", color: "#800080" },
       { name: "Marrom", color: "#A52A2A" },
-      { name: "Preta", color: "#000000" },
-    ],
-  },
-   {
-    name: "Taekwondo",
-    image: "https://picsum.photos/seed/taekwondo/600/400",
-    belts: [
-      { name: "Branca", color: "#FFFFFF" },
-      { name: "Amarela", color: "#FFFF00" },
-      { name: "Laranja", color: "#FFA500" },
-      { name: "Verde", color: "#008000" },
-      { name: "Azul", color: "#0000FF" },
-      { name: "Vermelha", color: "#FF0000" },
       { name: "Preta", color: "#000000" },
     ],
   },
