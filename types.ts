@@ -132,6 +132,7 @@ export interface StudentRequest {
   user_email: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
+  dojos?: { name: string } | null;
 }
 
 

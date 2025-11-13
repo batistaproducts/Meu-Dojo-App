@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, Dojo, User, GraduationEvent, Exam } from '../../types';
+import { Student, Dojo, User, GraduationEvent, Exam, StudentRequest } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import Logo from '../icons/Logo';
 import PublicStudentProfile from './PublicStudentProfile';
@@ -11,9 +11,10 @@ interface StudentDashboardProps {
     user: User;
     scheduledEvent: GraduationEvent | null;
     scheduledExam: Exam | null;
+    studentRequest: (StudentRequest & { dojos: { name: string; } | null; }) | null;
 }
 
-const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam }) => {
+const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
     const [activeTab, setActiveTab] = useState<'profile' | 'team'>('profile');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
     
@@ -23,7 +24,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
 
     useEffect(() => {
         if (!student) return;
-        alert('IDs de depuração foram registrados no console do navegador.');
+        // Commenting out the alert for better UX
+        // alert('IDs de depuração foram registrados no console do navegador.');
         console.log('--- INFORMAÇÕES DE DEBUG DO ALUNO ---');
         console.log('ID de Autenticação (user.id):', user.id);
         console.log('ID do Aluno (student.id):', student.id);
@@ -90,17 +92,27 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
     );
     
     if (!student) {
+        let title = "Aguardando Aprovação";
+        let message1 = "Sua solicitação para ingressar na academia foi enviada com sucesso.";
+        let message2 = "Assim que sua matrícula for aprovada pelo responsável, você terá acesso completo ao seu perfil e informações da equipe aqui.";
+        
+        if (studentRequest?.status === 'rejected') {
+            title = "Solicitação Recusada";
+            message1 = `Sua solicitação para ingressar na academia "${studentRequest.dojos?.name || 'desconhecida'}" foi recusada.`;
+            message2 = "Você pode tentar se registrar novamente ou entrar em contato com o responsável pela academia.";
+        }
+
         return (
             <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
                 {renderHeader()}
                 <main className="container mx-auto px-4 py-8 text-center">
                     <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg animate-fade-in">
-                        <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Aguardando Aprovação</h2>
+                        <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">{title}</h2>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Sua solicitação para ingressar na academia foi enviada com sucesso.
+                           {message1}
                         </p>
                         <p className="text-gray-600 dark:text-gray-400 mt-2">
-                            Assim que sua matrícula for aprovada pelo responsável, você terá acesso completo ao seu perfil e informações da equipe aqui.
+                           {message2}
                         </p>
                     </div>
                 </main>

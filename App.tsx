@@ -205,6 +205,7 @@ const AuthenticatedApp: React.FC = () => {
   const [studentProfile, setStudentProfile] = useState<(Student & { dojos: Dojo | null }) | null>(null);
   const [scheduledGraduationEvent, setScheduledGraduationEvent] = useState<GraduationEvent | null>(null);
   const [scheduledExamDetails, setScheduledExamDetails] = useState<Exam | null>(null);
+  const [studentRequest, setStudentRequest] = useState<(StudentRequest & { dojos: { name: string; } | null; }) | null>(null);
 
 
   // Dojo Data State (for masters)
@@ -241,6 +242,7 @@ const AuthenticatedApp: React.FC = () => {
         setStudentRequests([]);
         setScheduledGraduationEvent(null);
         setScheduledExamDetails(null);
+        setStudentRequest(null);
         setView('dashboard');
       }
       setSessionChecked(true);
@@ -319,8 +321,21 @@ const AuthenticatedApp: React.FC = () => {
                 }
             }
         } else {
-            // Student signed up but is not linked yet (pending approval)
+            // Student signed up but is not linked yet (pending approval or rejected)
             setStudentProfile(null);
+            const { data: requestData, error: requestError } = await supabase
+                .from('student_requests')
+                .select('*, dojos(name)')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (requestError) {
+                setError("Erro ao buscar status da solicitação: " + requestError.message);
+            } else {
+                setStudentRequest(requestData as any); 
+            }
         }
         
         setIsLoading(false);
@@ -784,6 +799,7 @@ const AuthenticatedApp: React.FC = () => {
         user={currentUser} 
         scheduledEvent={scheduledGraduationEvent}
         scheduledExam={scheduledExamDetails}
+        studentRequest={studentRequest}
     />;
   }
   
