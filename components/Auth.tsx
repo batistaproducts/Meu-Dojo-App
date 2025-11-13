@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SpinnerIcon from './icons/SpinnerIcon';
 import Logo from './icons/Logo';
+import { Dojo } from '../types';
 
 interface AuthProps {
     onAuthSuccess: () => void;
@@ -16,12 +17,45 @@ const InputField: React.FC<{label: string; id: string; type: string; value: stri
 
 const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     const [isLogin, setIsLogin] = useState(true);
+    const [userType, setUserType] = useState<'master' | 'student'>('master');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [dojos, setDojos] = useState<Dojo[]>([]);
+    const [selectedDojo, setSelectedDojo] = useState<Dojo | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchDojos = async () => {
+            if (userType === 'student' && !isLogin) {
+                // FIX: Select all columns to match the Dojo type, which includes 'owner_id' and 'modalities'.
+                const { data, error } = await supabase.from('dojos').select('*');
+                if (error) {
+                    console.error("Error fetching dojos:", error);
+                } else {
+                    setDojos(data || []);
+                }
+            }
+        };
+        fetchDojos();
+    }, [userType, isLogin]);
+    
+    const filteredDojos = dojos.filter(d => 
+        d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        d.team_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelectDojo = (dojo: Dojo) => {
+        setSelectedDojo(dojo);
+        setSearchTerm(`${dojo.name} (${dojo.team_name})`);
+        setIsDropdownOpen(false);
+    };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,21 +68,44 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
                 // onAuthStateChange in App.tsx will handle success
-            } else {
+            } else { // Sign up logic
                 if (!name || !email || !password) {
                     throw new Error('Por favor, preencha todos os campos.');
                 }
-                const { error } = await supabase.auth.signUp({
+                 if (userType === 'student' && !selectedDojo) {
+                    throw new Error('Por favor, selecione a academia que deseja ingressar.');
+                }
+
+                const { data, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
                             name: name,
+                            user_role: userType,
                         }
                     }
                 });
-                if (error) throw error;
-                setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
+                if (signUpError) throw signUpError;
+                
+                if (userType === 'student' && data.user) {
+                     const { error: requestError } = await supabase.from('student_requests').insert({
+                        user_id: data.user.id,
+                        dojo_id: selectedDojo!.id,
+                        user_name: name,
+                        user_email: email
+                    });
+
+                    if (requestError) {
+                        // This is a tricky state. The user is created but the request failed.
+                        // Best we can do is inform them to contact support or try registering again later.
+                        throw new Error(`Sua conta foi criada, mas a solicitação para entrar na academia falhou: ${requestError.message}. Por favor, tente novamente ou contate o suporte.`);
+                    }
+                    setMessage('Cadastro realizado! Sua solicitação foi enviada para a academia e aguarda aprovação.');
+                } else {
+                    setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
+                }
+                
                 setIsLogin(true); // Switch to login view after successful registration
             }
         } catch (err: any) {
@@ -68,10 +125,50 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">{isLogin ? 'Login' : 'Criar Conta'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {!isLogin && (
-                         <InputField label="Nome Completo" id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
+                        <>
+                            <div>
+                                <label className="block mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de acesso</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button type="button" onClick={() => setUserType('master')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'master' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou da Academia</button>
+                                    <button type="button" onClick={() => setUserType('student')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'student' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou Aluno</button>
+                                </div>
+                            </div>
+                            <InputField label="Nome Completo" id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
+                        </>
                     )}
                     <InputField label="E-mail" id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
                     <InputField label="Senha" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+
+                    {!isLogin && userType === 'student' && (
+                        <div className="relative">
+                            <label htmlFor="dojo" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Procure sua academia</label>
+                            <input
+                                id="dojo"
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setIsDropdownOpen(true);
+                                    setSelectedDojo(null);
+                                }}
+                                onFocus={() => setIsDropdownOpen(true)}
+                                // onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                                placeholder="Digite o nome da academia ou equipe"
+                                required
+                                className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg block w-full p-2.5"
+                            />
+                            {isDropdownOpen && (
+                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                   {filteredDojos.length > 0 ? filteredDojos.map(dojo => (
+                                       <div key={dojo.id} onClick={() => handleSelectDojo(dojo)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                                           <img src={dojo.team_logo_url || `https://ui-avatars.com/api/?name=${dojo.team_name.charAt(0)}&background=random`} alt="Logo" className="w-8 h-8 rounded-full object-cover"/>
+                                           <span>{dojo.name} ({dojo.team_name})</span>
+                                       </div>
+                                   )) : <div className="px-4 py-2 text-sm text-gray-500">Nenhuma academia encontrada.</div>}
+                                </div>
+                            )}
+                        </div>
+                    )}
                    
                     {error && <p className="text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}
                     {message && <p className="text-green-500 dark:text-green-400 text-sm text-center">{message}</p>}

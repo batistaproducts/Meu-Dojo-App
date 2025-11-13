@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink } from './types';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink, StudentRequest } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import CreateDojoForm from './components/dojo/CreateDojoForm';
@@ -203,6 +203,9 @@ const AuthenticatedApp: React.FC = () => {
   // Role-based State
   const [userRole, setUserRole] = useState<'master' | 'student' | null>(null);
   const [studentProfile, setStudentProfile] = useState<(Student & { dojos: Dojo | null }) | null>(null);
+  const [scheduledGraduationEvent, setScheduledGraduationEvent] = useState<GraduationEvent | null>(null);
+  const [scheduledExamDetails, setScheduledExamDetails] = useState<Exam | null>(null);
+
 
   // Dojo Data State (for masters)
   const [dojo, setDojo] = useState<Dojo | null>(null);
@@ -211,6 +214,7 @@ const AuthenticatedApp: React.FC = () => {
   const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
   const [championships, setChampionships] = useState<Championship[]>([]);
   const [studentUserLinks, setStudentUserLinks] = useState<StudentUserLink[]>([]);
+  const [studentRequests, setStudentRequests] = useState<StudentRequest[]>([]);
 
   // Diploma Generator State
   const [studentsForDiploma, setStudentsForDiploma] = useState<Student[]>([]);
@@ -234,6 +238,9 @@ const AuthenticatedApp: React.FC = () => {
         setGraduationEvents([]);
         setChampionships([]);
         setStudentUserLinks([]);
+        setStudentRequests([]);
+        setScheduledGraduationEvent(null);
+        setScheduledExamDetails(null);
         setView('dashboard');
       }
       setSessionChecked(true);
@@ -252,13 +259,80 @@ const AuthenticatedApp: React.FC = () => {
       
       setIsLoading(true);
       setError(null);
+
+      const signedUpRole = currentUser.user_metadata.user_role;
+
+      if (signedUpRole === 'student') {
+        setUserRole('student');
+        
+        const { data: linkData, error: linkError } = await supabase
+            .from('student_user_links')
+            .select('student_id')
+            .eq('user_id', currentUser.id)
+            .single();
+
+        if (linkError && linkError.code !== 'PGRST116') {
+            setError("Erro ao buscar vínculo de aluno: " + linkError.message);
+            setIsLoading(false);
+            return;
+        }
+
+        const studentId = linkData?.student_id || null;
+        
+        if (studentId) {
+            const { data: studentData, error: studentError } = await supabase
+                .from('students')
+                .select('*, dojos(*)')
+                .eq('id', studentId)
+                .single();
+
+            if (studentError) {
+                setError("Erro ao buscar perfil de aluno: " + studentError.message);
+            } else if (studentData) {
+                setStudentProfile(studentData);
+                
+                const { data: eventData, error: eventError } = await supabase
+                  .from('graduation_events')
+                  .select('*')
+                  .eq('status', 'scheduled')
+                  .contains('attendees', JSON.stringify([{ studentId: studentId }]))
+                  .limit(1)
+                  .maybeSingle();
+
+                if (eventError) {
+                  console.error("Error fetching scheduled event:", eventError.message);
+                }
+
+                if (eventData) {
+                  setScheduledGraduationEvent(eventData);
+                  const { data: examData, error: examError } = await supabase
+                    .from('exams')
+                    .select('*')
+                    .eq('id', eventData.exam_id)
+                    .single();
+                  
+                  if (examError) {
+                    console.error("Error fetching scheduled exam details:", examError.message);
+                  } else {
+                    setScheduledExamDetails(examData);
+                  }
+                }
+            }
+        } else {
+            // Student signed up but is not linked yet (pending approval)
+            setStudentProfile(null);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
       
-      // 1. Is user a dojo owner? Fetch the first dojo if they own multiple.
+      // If role is not 'student' (i.e., 'master' or legacy user), check for dojo ownership first
       const { data: dojosData, error: dojoError } = await supabase
         .from('dojos')
         .select('*')
         .eq('owner_id', currentUser.id)
-        .limit(1); // Use limit(1) to safely fetch one record, preventing a crash if a user owns multiple dojos.
+        .limit(1);
 
       if (dojoError) {
           setError("Erro ao buscar dados do dojo: " + dojoError.message);
@@ -272,20 +346,22 @@ const AuthenticatedApp: React.FC = () => {
       if (dojoData) {
         // User is a MASTER
         setDojo(dojoData);
-        const [studentsRes, examsRes, eventsRes, championshipsRes] = await Promise.all([
+        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes] = await Promise.all([
           supabase.from('students').select('*').eq('dojo_id', dojoData.id),
           supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
           supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('championships').select('*').eq('dojo_id', dojoData.id)
+          supabase.from('championships').select('*').eq('dojo_id', dojoData.id),
+          supabase.from('student_requests').select('*').eq('dojo_id', dojoData.id).eq('status', 'pending')
         ]);
-        if (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error) {
-            setError( (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error)!.message );
+        if (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error || requestsRes.error) {
+            setError( (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error || requestsRes.error)!.message );
         } else {
             const fetchedStudents = studentsRes.data || [];
             setStudents(fetchedStudents);
             setExams(examsRes.data || []);
             setGraduationEvents(eventsRes.data || []);
             setChampionships(championshipsRes.data || []);
+            setStudentRequests(requestsRes.data || []);
 
             const studentIds = fetchedStudents.map(s => s.id!).filter(Boolean);
             if (studentIds.length > 0) {
@@ -363,6 +439,36 @@ const AuthenticatedApp: React.FC = () => {
             } else if (studentData) {
                 setUserRole('student');
                 setStudentProfile(studentData);
+                
+                // Check for scheduled graduation event for this student
+                const { data: eventData, error: eventError } = await supabase
+                  .from('graduation_events')
+                  .select('*')
+                  .eq('status', 'scheduled')
+                  .contains('attendees', JSON.stringify([{ studentId: studentId }]))
+                  .limit(1)
+                  .maybeSingle();
+
+                if (eventError) {
+                  console.error("Error fetching scheduled event:", eventError.message);
+                }
+
+                if (eventData) {
+                  setScheduledGraduationEvent(eventData);
+                  // Now fetch the corresponding exam
+                  const { data: examData, error: examError } = await supabase
+                    .from('exams')
+                    .select('*')
+                    .eq('id', eventData.exam_id)
+                    .single();
+                  
+                  if (examError) {
+                    console.error("Error fetching scheduled exam details:", examError.message);
+                  } else {
+                    setScheduledExamDetails(examData);
+                  }
+                }
+
             } else {
                 // Link exists but student profile not found, might be an issue.
                 // For now, treat as non-student.
@@ -552,6 +658,63 @@ const AuthenticatedApp: React.FC = () => {
       setStudents(prev => prev.map(s => s.id === data.id ? data : s));
   };
 
+  const handleRejectStudentRequest = async (requestId: string) => {
+      const { error } = await supabase
+          .from('student_requests')
+          .update({ status: 'rejected' })
+          .eq('id', requestId);
+      if (error) throw error;
+      setStudentRequests(prev => prev.filter(req => req.id !== requestId));
+  };
+
+  const handleApproveStudentRequest = async (request: StudentRequest) => {
+      if (!dojo) return;
+
+      const defaultModality = dojo.modalities[0];
+      if (!defaultModality) throw new Error("O dojo não tem modalidades cadastradas para matricular um novo aluno.");
+      
+      const defaultBelt = defaultModality.belts[0];
+      if (!defaultBelt) throw new Error(`A modalidade "${defaultModality.name}" não tem faixas cadastradas.`);
+      
+      const today = new Date().toISOString().split('T')[0];
+
+      const newStudentPayload: Omit<Student, 'id'> = {
+          name: request.user_name,
+          email: request.user_email,
+          dojo_id: request.dojo_id,
+          modality: defaultModality.name,
+          belt: defaultBelt,
+          last_graduation_date: today,
+          tuition_fee: 0,
+          payments: [],
+          championships: [],
+          fights: [],
+          graduation_history: [{
+              id: Date.now().toString() + '_initial',
+              date: today,
+              belt: defaultBelt,
+              grade: 0,
+              examName: 'Cadastro Inicial',
+          }],
+      };
+
+      const { data: newStudent, error: studentError } = await supabase.from('students').insert(newStudentPayload).select().single();
+      if (studentError) throw studentError;
+
+      const { error: linkError } = await supabase.from('student_user_links').insert({ user_id: request.user_id, student_id: newStudent.id });
+      if (linkError) {
+          await supabase.from('students').delete().eq('id', newStudent.id); // Rollback
+          throw linkError;
+      }
+
+      const { error: requestError } = await supabase.from('student_requests').update({ status: 'approved' }).eq('id', request.id);
+      if (requestError) throw requestError;
+
+      setStudents(prev => [...prev, newStudent]);
+      setStudentRequests(prev => prev.filter(req => req.id !== request.id));
+      setStudentUserLinks(prev => [...prev, { user_id: request.user_id, student_id: newStudent.id! }]);
+  };
+
 
   // --- UI Handlers ---
   const handleNavigate = (newView: AppView) => {
@@ -582,7 +745,7 @@ const AuthenticatedApp: React.FC = () => {
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} />;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} studentRequests={studentRequests} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} onApproveRequest={handleApproveStudentRequest} onRejectRequest={handleRejectStudentRequest} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
@@ -615,8 +778,13 @@ const AuthenticatedApp: React.FC = () => {
     return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
   }
 
-  if (userRole === 'student' && studentProfile) {
-    return <StudentDashboard student={studentProfile} user={currentUser} />;
+  if (userRole === 'student') {
+    return <StudentDashboard 
+        student={studentProfile} 
+        user={currentUser} 
+        scheduledEvent={scheduledGraduationEvent}
+        scheduledExam={scheduledExamDetails}
+    />;
   }
   
   if (userRole === 'master') {

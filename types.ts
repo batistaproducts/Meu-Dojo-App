@@ -124,6 +124,17 @@ export interface Dojo {
 
 export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;
 
+export interface StudentRequest {
+  id: string;
+  user_id: string;
+  dojo_id: string;
+  user_name: string;
+  user_email: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+
 // FIX: Add types for the old Gemini diploma generator to resolve import errors.
 export interface DiplomaStyle {
   id: string;
