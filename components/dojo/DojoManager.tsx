@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest } from '../../types';
 import StudentProfile from '../student/StudentProfile';
@@ -357,7 +358,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
       {studentToUnlink && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md relative">
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                     <h3 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Confirmar Ação</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6" dangerouslySetInnerHTML={{ __html: `Tem certeza que deseja desvincular <strong>${studentToUnlink.name}</strong> do seu dojo? <br/>O aluno não será excluído permanentemente, mas não aparecerá mais na sua lista.` }} />
                     <div className="flex justify-end gap-4">

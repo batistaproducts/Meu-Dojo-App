@@ -44,7 +44,7 @@ const CreateDojoForm: React.FC<CreateDojoFormProps> = ({ onDojoCreated }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl animate-fade-in">
+    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl animate-fade-in">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">Crie seu Dojo</h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">Primeiro, vamos registrar as informações da sua academia.</p>

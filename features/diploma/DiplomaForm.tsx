@@ -1,3 +1,4 @@
+
 import React, { useState, ChangeEvent, useEffect } from 'react';
 import { MartialArt, DiplomaData, Belt, Student, Dojo, User } from '../../types';
 import UploadIcon from '../../components/icons/UploadIcon';
@@ -73,7 +74,7 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ students, martialArt, dojo, u
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl animate-fade-in">
+    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl animate-fade-in">
         <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">Gerar Diploma de {martialArt.name}</h2>
             <button onClick={onBack} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">&larr; Voltar</button>

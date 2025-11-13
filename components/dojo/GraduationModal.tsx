@@ -39,7 +39,7 @@ const GraduationModal: React.FC<GraduationModalProps> = ({ students, exams, onCl
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <CloseIcon className="w-6 h-6" />
         </button>
-        <form onSubmit={handleSubmit} className="p-8 space-y-6 text-gray-900 dark:text-white">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-gray-900 dark:text-white">
             <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">Agendar Graduação</h3>
             
             <div>

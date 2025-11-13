@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -121,7 +122,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 <Logo className="w-48 mx-auto" />
                 <p className="text-gray-600 dark:text-gray-300 mt-4">Gerencie a sua equipe de artes marciais</p>
             </div>
-            <div className="w-full max-w-md bg-white dark:bg-gray-800 p-8 rounded-lg shadow-2xl">
+            <div className="w-full max-w-md bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl">
                 <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">{isLogin ? 'Login' : 'Criar Conta'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {!isLogin && (

@@ -1,3 +1,4 @@
+
 import React, { useState, ChangeEvent } from 'react';
 import { Dojo, MartialArt } from '../../types';
 import CloseIcon from '../icons/CloseIcon';
@@ -78,7 +79,7 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                     <CloseIcon className="w-6 h-6" />
                 </button>
-                <div className="p-8 space-y-6">
+                <div className="p-6 sm:p-8 space-y-6">
                     <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">Configurações do Dojo</h3>
 
                     {/* Form Fields */}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Student, Dojo, User, GraduationEvent, Exam, StudentRequest } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -224,7 +225,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
             <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
                 {renderHeader()}
                 <main className="container mx-auto px-4 py-8 text-center">
-                    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg animate-fade-in">
+                    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-lg animate-fade-in">
                         <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">{title}</h2>
                         <p className="text-gray-600 dark:text-gray-400">
                            {message1}

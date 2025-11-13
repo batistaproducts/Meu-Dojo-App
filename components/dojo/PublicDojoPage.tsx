@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dojo, Student, Belt } from '../../types';
 import UserIcon from '../icons/UserIcon';
@@ -40,7 +41,7 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
         </div>
       )}
 
-      <header className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg mb-10 text-center relative overflow-hidden">
+      <header className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-lg mb-10 text-center relative overflow-hidden">
         {dojo.logo_url && (
             <img src={dojo.logo_url} alt={`${dojo.name} Logo`} className="mx-auto h-24 w-auto mb-4 object-contain" />
         )}
@@ -79,10 +80,10 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
                 >
                   {student.profile_picture_url ? (
-                    <img src={student.profile_picture_url} alt={student.name} className="w-24 h-24 rounded-full object-cover mx-auto border-4" style={{borderColor: student.belt.color}} />
+                    <img src={student.profile_picture_url} alt={student.name} className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover mx-auto border-4" style={{borderColor: student.belt.color}} />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto border-4" style={{borderColor: student.belt.color}}>
-                      <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mx-auto border-4" style={{borderColor: student.belt.color}}>
+                      <UserIcon className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                   <h4 className="font-bold mt-3 text-gray-900 dark:text-white">{student.name}</h4>

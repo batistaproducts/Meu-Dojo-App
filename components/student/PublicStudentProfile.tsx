@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Student } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -40,19 +41,19 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
       )}
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">
-        <div className="relative w-32 h-32">
+        <div className="relative w-24 h-24 md:w-32 md:h-32">
             {student.profile_picture_url ? (
-                <img src={student.profile_picture_url} alt={student.name} className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
+                <img src={student.profile_picture_url} alt={student.name} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
             ) : (
-                <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
-                    <UserIcon className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
+                    <UserIcon className="w-12 h-12 md:w-16 md:h-16 text-gray-400 dark:text-gray-500" />
                 </div>
             )}
             {teamLogoUrl && (
                 <img 
                     src={teamLogoUrl} 
                     alt={`${teamName} Logo`} 
-                    className="absolute -bottom-1 -right-1 w-12 h-12 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md"
+                    className="absolute -bottom-1 -right-1 w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-md"
                 />
             )}
         </div>

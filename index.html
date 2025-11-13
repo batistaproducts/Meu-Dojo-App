@@ -9,10 +9,16 @@
     <meta name="description" content="Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.">
     <script>
       // Define o tema inicial para evitar 'flash' de tema incorreto
-      if (localStorage.getItem('theme') === 'light') {
-        document.documentElement.classList.remove('dark');
+      // On mobile (screen width up to 768px), force light theme.
+      // On desktop, respect the user's saved preference.
+      if (window.matchMedia("(max-width: 768px)").matches) {
+          document.documentElement.classList.remove('dark');
       } else {
-        document.documentElement.classList.add('dark');
+          if (localStorage.getItem('theme') === 'light') {
+              document.documentElement.classList.remove('dark');
+          } else {
+              document.documentElement.classList.add('dark');
+          }
       }
     </script>
     <script>

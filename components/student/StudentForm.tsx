@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Student, MartialArt, Belt, Payment, GraduationHistoryEntry } from '../../types';
 import UserIcon from '../icons/UserIcon';
@@ -119,7 +120,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-8 space-y-6 text-gray-900 dark:text-white">
+    <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-gray-900 dark:text-white">
       <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">{student ? 'Editar Aluno' : 'Adicionar Novo Aluno'}</h3>
       
       <div className="flex flex-col sm:flex-row gap-6 items-center">
