@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { DiplomaData, MartialArt, GeneratedDiploma } from "../types";
 
