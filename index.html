@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
@@ -9,10 +8,15 @@
     <meta name="description" content="Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.">
     <script>
       // Define o tema inicial para evitar 'flash' de tema incorreto
-      // On mobile (screen width up to 768px), force light theme.
+      // On mobile devices, force light theme.
       // On desktop, respect the user's saved preference.
-      if (window.matchMedia("(max-width: 768px)").matches) {
+      function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
+      }
+
+      if (isMobile()) {
           document.documentElement.classList.remove('dark');
+          localStorage.setItem('theme', 'light');
       } else {
           if (localStorage.getItem('theme') === 'light') {
               document.documentElement.classList.remove('dark');

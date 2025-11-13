@@ -11,12 +11,32 @@ interface DiplomaPreviewProps {
 }
 
 const downloadPDF = (pdfDataUri: string, studentName: string) => {
-    const link = document.createElement('a');
-    link.href = pdfDataUri;
-    link.download = `diploma-${studentName.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const fileName = `diploma-${studentName.replace(/\s+/g, '_')}.pdf`;
+
+    // On iOS, the download attribute doesn't work. We need to open it in a new tab using a Blob URL.
+    if (isIOS) {
+        // Convert data URI to Blob
+        const byteString = atob(pdfDataUri.split(',')[1]);
+        const mimeString = pdfDataUri.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        
+        // Use window.open with a blob URL
+        window.open(URL.createObjectURL(blob));
+    } else {
+        // Standard download method for other browsers
+        const link = document.createElement('a');
+        link.href = pdfDataUri;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 };
 
 const DiplomaCard: React.FC<{ result: DiplomaResult }> = ({ result }) => {
