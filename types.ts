@@ -105,6 +105,8 @@ export interface Dojo {
   modalities: MartialArt[];
   logo_url?: string;
   team_logo_url?: string;
+  phone?: string;
+  instagram_handle?: string;
 }
 
 export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;
