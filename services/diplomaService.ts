@@ -26,9 +26,29 @@ export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): 
     // White background
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    // 1. Watermark (Dojo Logo)
+    if (diplomaData.dojoLogo) {
+        try {
+            // Set transparency for the watermark
+            (doc as any).setGState(new (doc as any).GState({opacity: 0.03}));
+
+            // Add the image centered on the page, fitting the height
+            const watermarkSize = pageHeight - (margin * 2); 
+            const watermarkX = (pageWidth / 2) - (watermarkSize / 2);
+            const watermarkY = (pageHeight / 2) - (watermarkSize / 2);
+            doc.addImage(diplomaData.dojoLogo, 'PNG', watermarkX, watermarkY, watermarkSize, watermarkSize);
+
+            // Reset transparency
+            (doc as any).setGState(new (doc as any).GState({opacity: 1}));
+        } catch (e) {
+            console.error("Error adding dojo logo as watermark:", e);
+        }
+    }
+    
     doc.setTextColor(0, 0, 0);
 
-    // 1. Declaration Text (Helvetica, 25px)
+    // 2. Declaration Text (Helvetica, 25px)
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(pxToPt(25));
     const declarationText = doc.splitTextToSize(
@@ -37,12 +57,12 @@ export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): 
     );
     doc.text(declarationText, margin, 40);
 
-    // 2. Student Name [ALUNO] (Helvetica-Bold, 58px)
+    // 3. Student Name [ALUNO] (Helvetica-Bold, 58px)
     doc.setFont('Helvetica', 'bold');
     doc.setFontSize(pxToPt(58));
     doc.text(student.name.toUpperCase(), margin, 110);
     
-    // 3. Signature lines and Master Name [MESTRE] (Helvetica-Bold, 35px)
+    // 4. Signature lines and Master Name [MESTRE] (Helvetica-Bold, 35px)
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
     doc.line(margin, 170, margin + 70, 168); // Top line
@@ -50,23 +70,7 @@ export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): 
     doc.setFontSize(pxToPt(35));
     doc.text(diplomaData.masterName.toUpperCase(), margin, 185);
 
-    // 4. Logos (40mm x 40mm, adjusted position)
-    const logoSize = 40;
-    const logoX = pageWidth - margin - logoSize;
-    const logoSpacing = 10;
-    
-    if (diplomaData.teamLogo) {
-        try {
-            doc.addImage(diplomaData.teamLogo, 'PNG', logoX, 40, logoSize, logoSize);
-        } catch(e) { console.error("Error adding team logo:", e); }
-    }
-    if (diplomaData.dojoLogo) {
-        try {
-            doc.addImage(diplomaData.dojoLogo, 'PNG', logoX, 40 + logoSize + logoSpacing, logoSize, logoSize);
-        } catch(e) { console.error("Error adding dojo logo:", e); }
-    }
-
-    // 5. Bottom Right Colored Block (Aligned to corner)
+    // 5. Bottom Right Colored Block (Rendered before team logo to ensure correct layering)
     const beltColorRGB = hexToRgb(student.belt.color) || [128, 0, 128];
     const blockWidth = 110;
     const blockHeight = 60;
@@ -75,13 +79,24 @@ export const generateDiplomaPDF = (diplomaData: DiplomaData, student: Student): 
     doc.setFillColor(beltColorRGB[0], beltColorRGB[1], beltColorRGB[2]);
     doc.rect(blockX, blockY, blockWidth, blockHeight, 'F');
 
-    // 6. Text inside the colored block
+    // 6. Team Logo (80mm x 80mm, centered vertically)
+    const logoSize = 80;
+    const logoX = pageWidth - margin - logoSize;
+    const logoY = (pageHeight / 2) - (logoSize / 2); // Centered vertically
+    
+    if (diplomaData.teamLogo) {
+        try {
+            doc.addImage(diplomaData.teamLogo, 'PNG', logoX, logoY, logoSize, logoSize);
+        } catch(e) { console.error("Error adding team logo:", e); }
+    }
+
+    // 7. Text inside the colored block
     doc.setTextColor(255, 255, 255);
     
     // GRADUACAO DE: (Helvetica, 25px)
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(pxToPt(25));
-    const beltNameText = `${student.belt.name.toUpperCase()} DE:`;
+    const beltNameText = `FAIXA ${student.belt.name.toUpperCase()} DE:`;
     doc.text(beltNameText, blockX + 10, blockY + 12);
     
     // [MODAL] (Helvetica-Bold, 125px)
