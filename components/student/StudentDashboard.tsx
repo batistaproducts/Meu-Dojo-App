@@ -5,6 +5,10 @@ import Logo from '../icons/Logo';
 import PublicStudentProfile from './PublicStudentProfile';
 import PublicDojoPage from '../dojo/PublicDojoPage';
 import SpinnerIcon from '../icons/SpinnerIcon';
+import EditIcon from '../icons/EditIcon';
+import CloseIcon from '../icons/CloseIcon';
+import UploadIcon from '../icons/UploadIcon';
+import UserIcon from '../icons/UserIcon';
 
 interface StudentDashboardProps {
     student: (Student & { dojos: Dojo | null }) | null;
@@ -14,27 +18,111 @@ interface StudentDashboardProps {
     studentRequest: (StudentRequest & { dojos: { name: string; } | null; }) | null;
 }
 
+// --- Edit Profile Modal Component ---
+const EditProfileModal: React.FC<{
+    student: Student;
+    onClose: () => void;
+    onSave: (name: string, newPicture: string | null) => Promise<void>;
+}> = ({ student, onClose, onSave }) => {
+    const [name, setName] = useState(student.name);
+    const [picture, setPicture] = useState<string | null>(student.profile_picture_url || null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPicture(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+            await onSave(name, picture);
+            onClose();
+        } catch (error) {
+            console.error("Error saving profile:", error);
+            alert("Não foi possível salvar as alterações. Tente novamente.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <CloseIcon className="w-6 h-6" />
+                </button>
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                    <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">Editar Perfil</h3>
+                    
+                    <div className="flex flex-col items-center gap-4">
+                        <label htmlFor="profile-picture-upload-modal" className="cursor-pointer group relative">
+                            {picture ? (
+                                <img src={picture} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 group-hover:bg-gray-300 dark:group-hover:bg-gray-600">
+                                    <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                                </div>
+                            )}
+                            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <UploadIcon className="w-8 h-8 text-white" />
+                            </div>
+                        </label>
+                        <input id="profile-picture-upload-modal" type="file" className="hidden" accept="image/*" onChange={handlePictureUpload} />
+                    </div>
+
+                    <div>
+                        <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
+                        <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+                    </div>
+                    
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold">Cancelar</button>
+                        <button type="submit" disabled={isSaving} className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center min-w-[100px]">
+                           {isSaving ? <SpinnerIcon className="w-5 h-5" /> : 'Salvar'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
+// --- Main Dashboard Component ---
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
     const [activeTab, setActiveTab] = useState<'profile' | 'team'>('profile');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
-    
     const [dojo, setDojo] = useState<Dojo | null>(student?.dojos || null);
     const [isLoading, setIsLoading] = useState(false);
     const [teamError, setTeamError] = useState<string | null>(null);
 
+    const [currentStudent, setCurrentStudent] = useState(student);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
     useEffect(() => {
-        if (!student) return;
-        // Commenting out the alert for better UX
-        // alert('IDs de depuração foram registrados no console do navegador.');
+        setCurrentStudent(student);
+        setDojo(student?.dojos || null);
+    }, [student]);
+
+    useEffect(() => {
+        if (!currentStudent) return;
         console.log('--- INFORMAÇÕES DE DEBUG DO ALUNO ---');
         console.log('ID de Autenticação (user.id):', user.id);
-        console.log('ID do Aluno (student.id):', student.id);
-        console.log('ID do Dojo (student.dojo_id):', student.dojo_id);
+        console.log('ID do Aluno (student.id):', currentStudent.id);
+        console.log('ID do Dojo (student.dojo_id):', currentStudent.dojo_id);
         console.log('------------------------------------');
-    }, [user, student]);
+    }, [user, currentStudent]);
     
     useEffect(() => {
-        if (activeTab !== 'team' || !student) return;
+        if (activeTab !== 'team' || !currentStudent) return;
 
         const loadTeamData = async () => {
             if (teamStudents.length > 0 && dojo) return;
@@ -46,10 +134,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                 let currentDojo = dojo;
 
                 if (!currentDojo) {
-                    if (!student.dojo_id) {
+                    if (!currentStudent.dojo_id) {
                         throw new Error("Seu perfil não está vinculado a um dojo.");
                     }
-                    const { data, error } = await supabase.from('dojos').select('*').eq('id', student.dojo_id).single();
+                    const { data, error } = await supabase.from('dojos').select('*').eq('id', currentStudent.dojo_id).single();
                     if (error) throw error;
                     if (!data) throw new Error("Dojo associado não foi encontrado.");
                     setDojo(data);
@@ -68,10 +156,40 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         };
 
         loadTeamData();
-    }, [activeTab, dojo, student, teamStudents.length]);
+    }, [activeTab, dojo, currentStudent, teamStudents.length]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    const handleSaveProfile = async (newName: string, newPicture: string | null) => {
+        if (!currentStudent) return;
+
+        const updates: { name?: string; profile_picture_url?: string } = {};
+        if (newName.trim() && newName !== currentStudent.name) {
+            updates.name = newName;
+        }
+        
+        const oldPicture = currentStudent.profile_picture_url || null;
+        if (newPicture !== oldPicture) {
+            updates.profile_picture_url = newPicture || undefined;
+        }
+
+        if (Object.keys(updates).length > 0) {
+            const { data, error } = await supabase
+                .from('students')
+                .update(updates)
+                .eq('id', currentStudent.id!)
+                .select('*, dojos(*)')
+                .single();
+
+            if (error) {
+                console.error("Supabase update error:", error);
+                throw error;
+            }
+            
+            setCurrentStudent(data);
+        }
     };
 
     const renderHeader = () => (
@@ -81,7 +199,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                     <Logo className="h-10" />
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-sm hidden sm:inline">Olá, {user.user_metadata.name || student?.name}</span>
+                    <span className="text-sm hidden sm:inline">Olá, {user.user_metadata.name || currentStudent?.name}</span>
                     <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-red-700 dark:text-amber-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md font-semibold">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                         <span>Sair</span>
@@ -91,7 +209,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         </header>
     );
     
-    if (!student) {
+    if (!currentStudent) {
         let title = "Aguardando Aprovação";
         let message1 = "Sua solicitação para ingressar na academia foi enviada com sucesso.";
         let message2 = "Assim que sua matrícula for aprovada pelo responsável, você terá acesso completo ao seu perfil e informações da equipe aqui.";
@@ -125,12 +243,21 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         switch (activeTab) {
             case 'profile':
                 return (
-                    <PublicStudentProfile
-                        student={student}
-                        dojoName={dojo?.name}
-                        teamName={dojo?.team_name}
-                        teamLogoUrl={dojo?.team_logo_url}
-                    />
+                    <div className="relative">
+                         <button 
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="absolute top-0 right-0 z-10 flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm rounded-lg transition-colors font-semibold"
+                        >
+                            <EditIcon className="w-4 h-4" />
+                            Editar Perfil
+                        </button>
+                        <PublicStudentProfile
+                            student={currentStudent}
+                            dojoName={dojo?.name}
+                            teamName={dojo?.team_name}
+                            teamLogoUrl={dojo?.team_logo_url}
+                        />
+                    </div>
                 );
             case 'team':
                 if (isLoading) {
@@ -221,6 +348,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                     {renderContent()}
                 </div>
             </main>
+            {isEditModalOpen && currentStudent && (
+                <EditProfileModal
+                    student={currentStudent}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSave={handleSaveProfile}
+                />
+            )}
         </div>
     );
 };
