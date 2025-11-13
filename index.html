@@ -6,6 +6,20 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meu Dojo</title>
+    <script>
+      // Define o tema inicial para evitar 'flash' de tema incorreto
+      if (localStorage.getItem('theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+    <script>
+      // Habilita o modo escuro baseado em classe para o Tailwind CSS
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

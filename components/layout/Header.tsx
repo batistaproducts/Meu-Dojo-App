@@ -1,23 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../types';
 import { AppView } from '../../App';
-import SunIcon from '../icons/SunIcon';
-import MoonIcon from '../icons/MoonIcon';
 import MenuIcon from '../icons/MenuIcon';
 import UserIcon from '../icons/UserIcon';
 import TrophyIcon from '../icons/TrophyIcon';
 import ClipboardCheckIcon from '../icons/ClipboardCheckIcon';
 import GlobeIcon from '../icons/GlobeIcon';
+import CertificateIcon from '../icons/CertificateIcon';
 
 interface HeaderProps {
     user: User;
-    theme: string;
-    onToggleTheme: () => void;
     onNavigate: (view: AppView) => void;
     onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -44,10 +41,6 @@ const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate,
                 <p className="hidden md:block text-gray-600 dark:text-gray-300 mt-1 text-xs">Gerencie a sua equipe de artes marciais</p>
             </div>
             <div className="flex items-center gap-4">
-                <button onClick={onToggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" aria-label="Toggle theme">
-                    {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-                </button>
-                
                 <div className="relative" ref={menuRef}>
                     <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         <MenuIcon className="w-5 h-5" />
@@ -78,6 +71,10 @@ const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate,
                                  <a onClick={() => handleNav('grading')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <ClipboardCheckIcon className="h-5 w-5" />
                                     <span>Próxima Graduação</span>
+                                </a>
+                                <a onClick={() => handleNav('diploma_generator')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                    <CertificateIcon className="h-5 w-5" />
+                                    <span>Gerador de Diplomas</span>
                                 </a>
                            </nav>
                            <div className="p-2 border-t border-gray-200 dark:border-gray-700">

@@ -9,6 +9,7 @@ import UserIcon from '../icons/UserIcon';
 import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
+import CertificateIcon from '../icons/CertificateIcon';
 
 interface DojoManagerProps {
   dojo: Dojo;
@@ -20,9 +21,10 @@ interface DojoManagerProps {
   onViewPublicProfile: (student: Student) => void;
   onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
   onUnlinkStudent: (studentId: string) => Promise<void>;
+  onNavigateToDiplomaGenerator: (students: Student[]) => void;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator }) => {
   const [view, setView] = useState<'list' | 'profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -101,6 +103,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
     }
   }
 
+  const handleGenerateDiplomas = () => {
+    const selected = students.filter(s => selectedStudentIds.has(s.id!));
+    if (selected.length > 0) {
+        onNavigateToDiplomaGenerator(selected);
+    }
+  }
+
   const handleScheduleGraduationWrapper = async (examId: string, date: string) => {
     const attendees = [...selectedStudentIds].map(id => ({ studentId: id }));
     await onScheduleGraduation(examId, date, attendees);
@@ -115,6 +124,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
         onAddFight={onAddFight}
         onBack={() => setView('list')} 
         onViewPublicProfile={onViewPublicProfile}
+        onNavigateToDiplomaGenerator={onNavigateToDiplomaGenerator}
     />;
   }
 
@@ -134,12 +144,21 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
               Configurações
             </button>
             {selectedStudentIds.size > 0 && (
+                <>
                 <button
                     onClick={handleOpenGraduationModal}
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold text-sm"
                 >
                     Graduar ({selectedStudentIds.size})
                 </button>
+                <button
+                    onClick={handleGenerateDiplomas}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-semibold text-sm"
+                >
+                    <CertificateIcon className="w-4 h-4" />
+                    Gerar Certificados ({selectedStudentIds.size})
+                </button>
+                </>
             )}
             <button
             onClick={() => handleOpenForm(null)}

@@ -4,6 +4,8 @@ import { Student, Dojo, Fight } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
 import FightRecordModal from './FightRecordModal';
 import UserIcon from '../icons/UserIcon';
+import CertificateIcon from '../icons/CertificateIcon';
+
 
 interface StudentProfileProps {
   student: Student;
@@ -11,6 +13,7 @@ interface StudentProfileProps {
   onBack: () => void;
   onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
+  onNavigateToDiplomaGenerator: (students: Student[]) => void;
 }
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
@@ -20,7 +23,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onAddFight, onViewPublicProfile }) => {
+const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onAddFight, onViewPublicProfile, onNavigateToDiplomaGenerator }) => {
   const [isFightModalOpen, setIsFightModalOpen] = useState(false);
 
   const handleAddFightWrapper = async (fight: Omit<Fight, 'id'>) => {
@@ -39,14 +42,20 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
             <ChevronLeftIcon className="w-5 h-5" />
             Voltar para a lista de alunos
         </button>
-         <button onClick={() => onViewPublicProfile(student)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-            Ver Perfil Público
-         </button>
+        <div className="flex gap-4">
+            <button onClick={() => onNavigateToDiplomaGenerator([student])} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors font-semibold">
+                <CertificateIcon className="w-4 h-4" />
+                Gerar Certificado
+            </button>
+            <button onClick={() => onViewPublicProfile(student)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                Ver Perfil Público
+            </button>
+        </div>
       </div>
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">

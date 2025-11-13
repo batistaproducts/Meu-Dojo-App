@@ -21,12 +21,15 @@ const generateTextVariations = async (data: DiplomaData, art: MartialArt): Promi
   
       Detalhes da Graduação:
       - Arte Marcial: ${art.name}
-      - Graduação Alcançada: Faixa ${data.selectedBelt.name}
-      - Nome do Aluno: ${data.studentName}
+      // FIX: Add non-null assertion for optional property 'selectedBelt'.
+      - Graduação Alcançada: Faixa ${data.selectedBelt!.name}
+      // FIX: Add non-null assertion for optional property 'studentName'.
+      - Nome do Aluno: ${data.studentName!}
       - Data da Graduação: ${data.graduationDate}
       - Equipe/Dojo: ${data.teamName}
       - Mestre Responsável: ${data.masterName}
-      - Estilo do Diploma: ${data.selectedStyle.name}
+      // FIX: Add non-null assertion for optional property 'selectedStyle'.
+      - Estilo do Diploma: ${data.selectedStyle!.name}
       ${data.customNotes ? `- Observações Adicionais: ${data.customNotes}` : ''}
   
       O tom e a estrutura do texto devem refletir o estilo do diploma selecionado. Para o estilo 'Padrão', use uma linguagem mais clássica e formal. Para o 'Minimalista', seja mais direto e conciso.
@@ -80,8 +83,10 @@ const generateImageVariation = async (data: DiplomaData, art: MartialArt): Promi
       Seja preciso na substituição, garantindo que o novo texto se encaixe perfeitamente no lugar do antigo.
 
       Novas Informações:
-      - Nome do Aluno: ${data.studentName}
-      - Graduação: Faixa ${data.selectedBelt.name} de ${art.name}
+      // FIX: Add non-null assertion for optional property 'studentName'.
+      - Nome do Aluno: ${data.studentName!}
+      // FIX: Add non-null assertion for optional property 'selectedBelt'.
+      - Graduação: Faixa ${data.selectedBelt!.name} de ${art.name}
       - Data: ${data.graduationDate}
       - Nome da Equipe/Dojo: ${data.teamName}
       - Nome do Mestre: ${data.masterName}
@@ -122,7 +127,8 @@ const generateImageVariation = async (data: DiplomaData, art: MartialArt): Promi
 };
 
 export const generateDiplomaVariations = async (data: DiplomaData, art: MartialArt): Promise<GeneratedDiploma[]> => {
-    if (data.selectedStyle.id === 'custom') {
+    // FIX: Add non-null assertion for optional property 'selectedStyle'.
+    if (data.selectedStyle!.id === 'custom') {
         return generateImageVariation(data, art);
     } else {
         return generateTextVariations(data, art);

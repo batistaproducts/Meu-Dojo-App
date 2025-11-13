@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt } from './types';
@@ -11,8 +12,9 @@ import PublicStudentProfile from './components/student/PublicStudentProfile';
 import Header from './components/layout/Header';
 import SpinnerIcon from './components/icons/SpinnerIcon';
 import PublicDojoPage from './components/dojo/PublicDojoPage';
+import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 
-export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile' | 'public_dojo_page';
+export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile' | 'public_dojo_page' | 'diploma_generator';
 
 const App: React.FC = () => {
   // Global State
@@ -20,13 +22,15 @@ const App: React.FC = () => {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [theme, setTheme] = useState('dark');
 
   // Dojo Data State
   const [dojo, setDojo] = useState<Dojo | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
+  
+  // Diploma Generator State
+  const [studentsForDiploma, setStudentsForDiploma] = useState<Student[]>([]);
 
   // UI/Navigation State
   const [view, setView] = useState<AppView>('dashboard');
@@ -35,12 +39,6 @@ const App: React.FC = () => {
   
 
   // --- Effects ---
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  }, []);
-  
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
@@ -215,18 +213,13 @@ const App: React.FC = () => {
   };
 
   // --- UI Handlers ---
-  const toggleTheme = () => {
-    setTheme(prevTheme => {
-        const newTheme = prevTheme === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('theme', newTheme);
-        document.documentElement.classList.toggle('dark', newTheme === 'dark');
-        return newTheme;
-    });
-  };
-
   const handleNavigate = (newView: AppView) => {
     if (newView !== view) {
       setPreviousView(view);
+    }
+    // Quando navegar para o gerador de diplomas pelo menu, garanta que não há alunos pré-selecionados.
+    if (newView === 'diploma_generator') {
+        setStudentsForDiploma([]);
     }
     setView(newView);
   };
@@ -236,6 +229,12 @@ const App: React.FC = () => {
     setPreviousView(view);
     setView('public_profile');
   }
+
+  const handleNavigateToDiplomaGenerator = (studentsToCertify: Student[]) => {
+    setStudentsForDiploma(studentsToCertify);
+    setPreviousView(view);
+    setView('diploma_generator');
+  };
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -247,13 +246,13 @@ const App: React.FC = () => {
       return <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-12 h-12" /></div>;
     }
 
-    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page')) {
+    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page' || view === 'diploma_generator')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} />;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
@@ -263,6 +262,8 @@ const App: React.FC = () => {
         return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView(previousView)} />;
       case 'public_dojo_page':
         return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} />;
+      case 'diploma_generator':
+        return <DiplomaGenerator students={studentsForDiploma} dojo={dojo!} onBack={() => setView(previousView)} user={currentUser!} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;
@@ -279,7 +280,7 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-       <Header user={currentUser} theme={theme} onToggleTheme={toggleTheme} onNavigate={handleNavigate} onLogout={handleLogout} />
+       <Header user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} />
       <main className="container mx-auto px-4 py-8">
         {renderCurrentView()}
       </main>

@@ -111,7 +111,7 @@ export interface Dojo {
 
 export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;
 
-// FIX: Add missing types for Diploma Generator feature
+// FIX: Add types for the old Gemini diploma generator to resolve import errors.
 export interface DiplomaStyle {
   id: string;
   name: string;
@@ -133,20 +133,25 @@ export interface ColorScheme {
   bg: string;
 }
 
-export interface DiplomaData {
-  studentName: string;
-  graduationDate: string;
-  teamName: string;
-  masterName: string;
-  selectedBelt: Belt;
-  selectedStyle: DiplomaStyle;
-  teamLogo: string | null;
-  font: DiplomaFont;
-  colorScheme: ColorScheme;
-  customNotes: string;
-  existingDiplomaImage: string | null;
-}
-
 export type GeneratedDiploma =
   | { type: 'text'; data: { title: string; body: string } }
   | { type: 'image'; data: { base64: string } };
+
+// Diploma data for the new template-based generator
+export interface DiplomaData {
+  graduationDate: string;
+  teamName: string;
+  masterName: string;
+  martialArtName: string;
+  teamLogo: string | null;
+  dojoLogo: string | null;
+  dojoLocation: string;
+  // FIX: Add optional fields for old Gemini feature to resolve property access errors.
+  studentName?: string;
+  selectedBelt?: Belt;
+  selectedStyle?: DiplomaStyle;
+  font?: DiplomaFont;
+  colorScheme?: ColorScheme;
+  customNotes?: string;
+  existingDiplomaImage?: string | null;
+}

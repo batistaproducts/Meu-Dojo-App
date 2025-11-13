@@ -1,3 +1,4 @@
+// FIX: Import types needed for the new constants.
 import { MartialArt, DiplomaStyle, DiplomaFont, ColorScheme } from './types';
 
 export const MARTIAL_ARTS: MartialArt[] = [
@@ -57,22 +58,21 @@ export const MARTIAL_ARTS: MartialArt[] = [
   },
 ];
 
-// FIX: Add missing constants for Diploma Generator feature
+// FIX: Add missing constants to resolve import errors in DiplomaForm component.
 export const DIPLOMA_STYLES: DiplomaStyle[] = [
-  { id: 'standard', name: 'Padrão', thumbnail: 'https://picsum.photos/seed/standard/200/283' },
-  { id: 'minimalist', name: 'Minimalista', thumbnail: 'https://picsum.photos/seed/minimalist/200/283' },
-  { id: 'custom', name: 'Meu Diploma', thumbnail: 'https://picsum.photos/seed/custom/200/283' },
+    { id: 'standard', name: 'Padrão', thumbnail: 'https://picsum.photos/seed/standard/200/282' },
+    { id: 'minimalist', name: 'Minimalista', thumbnail: 'https://picsum.photos/seed/minimalist/200/282' },
+    { id: 'custom', name: 'Meu Diploma', thumbnail: 'https://picsum.photos/seed/custom/200/282' },
 ];
 
 export const DIPLOMA_FONTS: DiplomaFont[] = [
-  { id: 'serif', name: 'Clássica (Serif)', className: 'font-serif' },
-  { id: 'sans', name: 'Moderna (Sans-Serif)', className: 'font-sans' },
-  { id: 'mono', name: 'Máquina de Escrever (Mono)', className: 'font-mono' },
+    { id: 'cinzel', name: 'Cinzel', className: 'font-cinzel' },
+    { id: 'serif', name: 'Serif Genérico', className: 'font-serif' },
+    { id: 'sans', name: 'Sans-Serif', className: 'font-sans' },
 ];
 
 export const DIPLOMA_COLOR_SCHEMES: ColorScheme[] = [
-  { id: 'classic', name: 'Clássico', primary: '#A52A2A', secondary: '#C0C0C0', text: '#333333', bg: '#F5F5DC' },
-  { id: 'modern', name: 'Moderno', primary: '#000080', secondary: '#E0E0E0', text: '#212121', bg: '#FFFFFF' },
-  { id: 'dark', name: 'Escuro', primary: '#FFD700', secondary: '#4A4A4A', text: '#F5F5F5', bg: '#1E1E1E' },
-  { id: 'elegant', name: 'Elegante', primary: '#4B0082', secondary: '#D8BFD8', text: '#303030', bg: '#FAF7FA' },
+    { id: 'classic', name: 'Clássico', primary: '#B8860B', secondary: '#D2B48C', text: '#3A3A3A', bg: '#F5F5DC' },
+    { id: 'modern', name: 'Moderno', primary: '#DC143C', secondary: '#696969', text: '#2F4F4F', bg: '#FFFFFF' },
+    { id: 'dark', name: 'Escuro', primary: '#FFD700', secondary: '#808080', text: '#F5F5F5', bg: '#2C2C2C' },
 ];
