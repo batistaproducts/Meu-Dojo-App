@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult } from './types';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import CreateDojoForm from './components/dojo/CreateDojoForm';
@@ -122,22 +122,26 @@ const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId
                 if (!studentData) throw new Error('Aluno não encontrado.');
                 setStudent(studentData);
 
-                if (!studentData.dojo_id) throw new Error('Este aluno não está associado a um dojo.');
+                // SEO Update part 1
+                document.title = `Perfil de ${studentData.name}`;
 
-                const { data: dojoData, error: dojoError } = await supabase
-                    .from('dojos')
-                    .select('*')
-                    .eq('id', studentData.dojo_id)
-                    .single();
+                if (studentData.dojo_id) {
+                    const { data: dojoData, error: dojoError } = await supabase
+                        .from('dojos')
+                        .select('*')
+                        .eq('id', studentData.dojo_id)
+                        .single();
 
-                if (dojoError) throw dojoError;
-                if (!dojoData) throw new Error('Dojo associado não encontrado.');
-                setDojo(dojoData);
-                
-                // SEO Update
-                document.title = `Perfil de ${studentData.name} | ${dojoData.name}`;
-                if (metaDesc) {
-                  metaDesc.setAttribute('content', `Perfil público do atleta ${studentData.name}, praticante de ${studentData.modality} na equipe ${dojoData.team_name}.`);
+                    if (dojoError && dojoError.code !== 'PGRST116') throw dojoError;
+
+                    if (dojoData) {
+                        setDojo(dojoData);
+                        // SEO Update part 2
+                        document.title = `Perfil de ${studentData.name} | ${dojoData.name}`;
+                        if (metaDesc) {
+                          metaDesc.setAttribute('content', `Perfil público do atleta ${studentData.name}, praticante de ${studentData.modality} na equipe ${dojoData.team_name}.`);
+                        }
+                    }
                 }
 
             } catch (err: any) {
@@ -167,7 +171,7 @@ const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId
     if (error) {
         return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
     }
-    if (!student || !dojo) {
+    if (!student) {
         return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p>Não foi possível carregar o perfil do aluno.</p></div>;
     }
 
@@ -176,9 +180,9 @@ const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId
             <main className="container mx-auto px-4 py-8">
                 <PublicStudentProfile 
                     student={student} 
-                    dojoName={dojo.name}
-                    teamName={dojo.team_name}
-                    teamLogoUrl={dojo.team_logo_url}
+                    dojoName={dojo?.name}
+                    teamName={dojo?.team_name}
+                    teamLogoUrl={dojo?.team_logo_url}
                     onBack={() => window.history.back()}
                 />
             </main>
@@ -206,6 +210,7 @@ const AuthenticatedApp: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
   const [championships, setChampionships] = useState<Championship[]>([]);
+  const [studentUserLinks, setStudentUserLinks] = useState<StudentUserLink[]>([]);
 
   // Diploma Generator State
   const [studentsForDiploma, setStudentsForDiploma] = useState<Student[]>([]);
@@ -228,6 +233,7 @@ const AuthenticatedApp: React.FC = () => {
         setExams([]);
         setGraduationEvents([]);
         setChampionships([]);
+        setStudentUserLinks([]);
         setView('dashboard');
       }
       setSessionChecked(true);
@@ -273,52 +279,88 @@ const AuthenticatedApp: React.FC = () => {
         if (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error) {
             setError( (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error)!.message );
         } else {
-            setStudents(studentsRes.data || []);
+            const fetchedStudents = studentsRes.data || [];
+            setStudents(fetchedStudents);
             setExams(examsRes.data || []);
             setGraduationEvents(eventsRes.data || []);
             setChampionships(championshipsRes.data || []);
+
+            const studentIds = fetchedStudents.map(s => s.id!).filter(Boolean);
+            if (studentIds.length > 0) {
+                const { data: linksData, error: linksError } = await supabase
+                    .from('student_user_links')
+                    .select('student_id, user_id')
+                    .in('student_id', studentIds);
+                if (linksError) {
+                    setError("Erro ao buscar vínculos de alunos: " + linksError.message);
+                } else {
+                    setStudentUserLinks(linksData || []);
+                }
+            } else {
+                setStudentUserLinks([]);
+            }
         }
         setUserRole('master');
       } else {
         // Not a dojo owner. Are they a STUDENT?
-        if (!currentUser.email) {
-            setUserRole('master');
-            setDojo(null);
-            setIsLoading(false);
-            return;
-        }
-
-        const { data: studentData, error: studentError } = await supabase
-            .from('students')
-            .select('*, dojos(*)')
-            .eq('email', currentUser.email)
+        // 1. Check for an existing link
+        const { data: linkData, error: linkError } = await supabase
+            .from('student_user_links')
+            .select('student_id')
+            .eq('user_id', currentUser.id)
             .single();
 
-        if (studentError && studentError.code !== 'PGRST116') {
-            setError("Erro ao buscar perfil de aluno: " + studentError.message);
-            setUserRole(null);
+        if (linkError && linkError.code !== 'PGRST116') { // PGRST116: no rows found
+            setError("Erro ao buscar vínculo de aluno: " + linkError.message);
             setIsLoading(false);
             return;
         }
-        
-        if (studentData) {
-            // User is a STUDENT
-            setUserRole('student');
-            // Link account on first login
-            if (!studentData.user_id) {
-                const { error: updateError } = await supabase
-                    .from('students')
-                    .update({ user_id: currentUser.id })
-                    .eq('id', studentData.id);
-                if (updateError) {
-                  setError("Falha ao vincular conta de aluno: " + updateError.message);
+
+        let studentId: string | null = linkData?.student_id || null;
+
+        // 2. If no link, try to link by email
+        if (!studentId && currentUser.email) {
+            const { data: studentByEmail, error: studentByEmailError } = await supabase
+                .from('students')
+                .select('id')
+                .eq('email', currentUser.email)
+                .single();
+            
+            if (studentByEmail && !studentByEmailError) {
+                // Found a student by email, create the link
+                const { error: insertLinkError } = await supabase
+                    .from('student_user_links')
+                    .insert({ user_id: currentUser.id, student_id: studentByEmail.id });
+
+                if (insertLinkError) {
+                    setError("Falha ao vincular conta de aluno: " + insertLinkError.message);
                 } else {
-                  studentData.user_id = currentUser.id;
+                    studentId = studentByEmail.id; // Link created, proceed to fetch profile
                 }
             }
-            setStudentProfile(studentData);
+        }
+        
+        // 3. If we have a studentId (either from link or just created), fetch the full profile
+        if (studentId) {
+            const { data: studentData, error: studentError } = await supabase
+                .from('students')
+                .select('*, dojos(*)')
+                .eq('id', studentId)
+                .single();
+
+            if (studentError) {
+                setError("Erro ao buscar perfil de aluno: " + studentError.message);
+            } else if (studentData) {
+                setUserRole('student');
+                setStudentProfile(studentData);
+            } else {
+                // Link exists but student profile not found, might be an issue.
+                // For now, treat as non-student.
+                setUserRole('master');
+                setDojo(null);
+            }
         } else {
-            // No dojo, no student profile -> new MASTER
+            // No link, no email match -> new MASTER
             setUserRole('master');
             setDojo(null);
         }
@@ -530,7 +572,7 @@ const AuthenticatedApp: React.FC = () => {
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} />;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':

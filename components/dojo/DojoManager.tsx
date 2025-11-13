@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dojo, Student, Exam, StudentGrading, Fight } from '../../types';
+import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
@@ -17,6 +17,7 @@ interface DojoManagerProps {
   dojo: Dojo;
   students: Student[];
   exams: Exam[];
+  studentUserLinks: StudentUserLink[];
   onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
   onSaveSettings: (updates: Partial<Dojo>) => Promise<void>;
@@ -26,7 +27,7 @@ interface DojoManagerProps {
   onNavigateToDiplomaGenerator: (students: Student[]) => void;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studentUserLinks, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator }) => {
   const [view, setView] = useState<'list' | 'profile' | 'public_profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -141,6 +142,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
         teamName={dojo.team_name}
         teamLogoUrl={dojo.team_logo_url}
         onBack={() => setView('profile')}
+        backButtonText="Voltar para o Perfil do Aluno"
     />;
   }
 
@@ -157,7 +159,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
               onClick={() => setIsSettingsModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-semibold text-sm"
             >
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Configurações
             </button>
             {selectedStudentIds.size > 0 && (
@@ -246,6 +248,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
               modalities={dojo.modalities}
               onSave={handleSaveStudentWrapper}
               onCancel={handleCloseForm}
+              isLinked={!!formStudent?.id && studentUserLinks.some(link => link.student_id === formStudent.id)}
             />
           </div>
         </div>

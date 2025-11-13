@@ -53,7 +53,6 @@ export interface GraduationHistoryEntry {
 export interface Student {
   id?: string;
   dojo_id: string;
-  user_id?: string | null;
   email: string;
   name:string;
   modality: string;
@@ -66,6 +65,11 @@ export interface Student {
   fights: Fight[];
   graduation_history: GraduationHistoryEntry[];
   profile_picture_url?: string;
+}
+
+export interface StudentUserLink {
+  student_id: string;
+  user_id: string;
 }
 
 export interface ExamExercise {

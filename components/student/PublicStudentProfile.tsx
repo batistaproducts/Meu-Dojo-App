@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Student } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -6,10 +5,11 @@ import UserIcon from '../icons/UserIcon';
 
 interface PublicStudentProfileProps {
   student: Student;
-  dojoName: string;
-  teamName: string;
+  dojoName?: string;
+  teamName?: string;
   teamLogoUrl?: string;
-  onBack: () => void;
+  onBack?: () => void;
+  backButtonText?: string;
 }
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
@@ -19,7 +19,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack }) => {
+const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack, backButtonText }) => {
     
   const fightRecord = student.fights.reduce((acc, fight) => {
     if (fight.result === 'win') acc.wins++;
@@ -30,12 +30,14 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto">
-      <div className="mb-8">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-            <ChevronLeftIcon className="w-5 h-5" />
-            Voltar para o Dojo
-        </button>
-      </div>
+      {onBack && (
+        <div className="mb-8">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+              <ChevronLeftIcon className="w-5 h-5" />
+              {backButtonText || 'Voltar para o Dojo'}
+          </button>
+        </div>
+      )}
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">
         <div className="relative w-32 h-32">
@@ -57,7 +59,7 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         <div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mt-2">{student.name}</h2>
             <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
-            <p className="text-gray-600 dark:text-gray-400">Membro da {dojoName} / {teamName}</p>
+            <p className="text-gray-600 dark:text-gray-400">Membro da {dojoName || 'Dojo não especificado'} / {teamName || 'Equipe não especificada'}</p>
         </div>
       </header>
 

@@ -8,6 +8,7 @@ interface StudentFormProps {
   modalities: MartialArt[];
   onSave: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onCancel: () => void;
+  isLinked: boolean;
 }
 
 const generateLast12Months = (): { month: number, year: number }[] => {
@@ -20,7 +21,7 @@ const generateLast12Months = (): { month: number, year: number }[] => {
     return dates.reverse();
 };
 
-const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, onCancel }) => {
+const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, onCancel, isLinked }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [modality, setModality] = useState(modalities[0]?.name || '');
@@ -90,7 +91,6 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
     
     const studentData: Omit<Student, 'dojo_id'> = {
         id: student ? student.id : undefined,
-        user_id: student ? student.user_id : undefined,
         name,
         email,
         modality,
@@ -145,8 +145,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
             </div>
             <div>
                 <label htmlFor="studentEmail" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Email (para login do aluno)</label>
-                <input id="studentEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={!!student?.user_id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="email@doaluno.com" />
-                {student?.user_id && <p className="text-xs text-gray-400 mt-1">Email não pode ser alterado (login vinculado).</p>}
+                <input id="studentEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLinked} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="email@doaluno.com" />
+                {isLinked && <p className="text-xs text-gray-400 mt-1">Email não pode ser alterado (login vinculado).</p>}
             </div>
             <div>
                 <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
