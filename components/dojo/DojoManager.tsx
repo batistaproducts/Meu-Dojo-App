@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dojo, Student, Exam, StudentGrading, Fight } from '../../types';
 import StudentProfile from '../student/StudentProfile';
@@ -10,6 +11,7 @@ import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import CertificateIcon from '../icons/CertificateIcon';
+import GlobeIcon from '../icons/GlobeIcon';
 
 interface DojoManagerProps {
   dojo: Dojo;

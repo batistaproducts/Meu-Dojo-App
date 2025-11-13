@@ -1,14 +1,17 @@
+
 import React from 'react';
 import { Dojo, Student, Belt } from '../../types';
 import UserIcon from '../icons/UserIcon';
+import GlobeIcon from '../icons/GlobeIcon';
 
 interface PublicDojoPageProps {
   dojo: Dojo;
   students: Student[];
   onViewPublicProfile: (student: Student) => void;
+  isOwnerPreview?: boolean;
 }
 
-const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewPublicProfile }) => {
+const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewPublicProfile, isOwnerPreview }) => {
   const getBeltIndex = (modalityName: string, belt: Belt): number => {
     const martialArt = dojo.modalities.find(m => m.name === modalityName);
     if (!martialArt) return -1;
@@ -31,6 +34,28 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
 
   return (
     <div className="animate-fade-in max-w-7xl mx-auto">
+      {isOwnerPreview && (
+        <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg relative mb-8 text-center">
+            <p className="font-semibold">Você está visualizando sua página pública.</p>
+            <p className="text-sm">É assim que os visitantes verão seu perfil.</p>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/dojo/${dojo.id}`;
+                navigator.clipboard.writeText(url)
+                  .then(() => alert('Link da página pública copiado!'))
+                  .catch(err => {
+                      console.error('Falha ao copiar o link: ', err);
+                      alert('Não foi possível copiar o link.');
+                  });
+              }}
+              className="mt-3 flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-semibold text-sm mx-auto"
+            >
+              <GlobeIcon className="h-4 w-4" />
+              Copiar Link Público
+            </button>
+        </div>
+      )}
+
       <header className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg mb-10 text-center relative overflow-hidden">
         {dojo.logo_url && (
             <img src={dojo.logo_url} alt={`${dojo.name} Logo`} className="mx-auto h-24 w-auto mb-4 object-contain" />

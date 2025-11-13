@@ -72,10 +72,10 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
                                     <ClipboardCheckIcon className="h-5 w-5" />
                                     <span>Próxima Graduação</span>
                                 </a>
-                                <a onClick={() => handleNav('diploma_generator')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                {/* <a onClick={() => handleNav('diploma_generator')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <CertificateIcon className="h-5 w-5" />
                                     <span>Gerador de Diplomas</span>
-                                </a>
+                                </a> */}
                            </nav>
                            <div className="p-2 border-t border-gray-200 dark:border-gray-700">
                                 <button onClick={onLogout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-700 dark:text-amber-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md">

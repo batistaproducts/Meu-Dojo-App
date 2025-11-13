@@ -14,9 +14,143 @@ import SpinnerIcon from './components/icons/SpinnerIcon';
 import PublicDojoPage from './components/dojo/PublicDojoPage';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 
-export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile' | 'public_dojo_page' | 'diploma_generator';
+export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_dojo_page' | 'diploma_generator';
 
-const App: React.FC = () => {
+// --- Public Page Loader Components ---
+
+const PublicDojoPageLoader: React.FC<{ dojoIdOrSlug: string }> = ({ dojoIdOrSlug }) => {
+  const [dojo, setDojo] = useState<Dojo | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPublicDojoData = async () => {
+      try {
+        setIsLoading(true);
+        const { data: dojoData, error: dojoError } = await supabase
+          .from('dojos')
+          .select('*')
+          .eq('id', dojoIdOrSlug)
+          .single();
+
+        if (dojoError) throw dojoError;
+        if (!dojoData) throw new Error('Dojo não encontrado.');
+        
+        setDojo(dojoData);
+
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('dojo_id', dojoData.id);
+        
+        if (studentsError) throw studentsError;
+
+        setStudents(studentsData || []);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPublicDojoData();
+  }, [dojoIdOrSlug]);
+
+  const handleViewPublicProfile = (student: Student) => {
+    window.location.href = `/student/${student.id}`;
+  };
+
+  if (isLoading) {
+    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
+  }
+  if (error) {
+    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
+  }
+  if (!dojo) {
+    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p>Dojo não encontrado.</p></div>;
+  }
+
+  return (
+      <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+          <main className="container mx-auto px-4 py-8">
+              <PublicDojoPage dojo={dojo} students={students} onViewPublicProfile={handleViewPublicProfile} />
+          </main>
+      </div>
+  );
+};
+
+const PublicStudentProfileLoader: React.FC<{ studentId: string }> = ({ studentId }) => {
+    const [student, setStudent] = useState<Student | null>(null);
+    const [dojo, setDojo] = useState<Dojo | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchPublicStudentData = async () => {
+            try {
+                setIsLoading(true);
+                const { data: studentData, error: studentError } = await supabase
+                    .from('students')
+                    .select('*')
+                    .eq('id', studentId)
+                    .single();
+
+                if (studentError) throw studentError;
+                if (!studentData) throw new Error('Aluno não encontrado.');
+                setStudent(studentData);
+
+                if (!studentData.dojo_id) throw new Error('Este aluno não está associado a um dojo.');
+
+                const { data: dojoData, error: dojoError } = await supabase
+                    .from('dojos')
+                    .select('*')
+                    .eq('id', studentData.dojo_id)
+                    .single();
+
+                if (dojoError) throw dojoError;
+                if (!dojoData) throw new Error('Dojo associado não encontrado.');
+                setDojo(dojoData);
+
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPublicStudentData();
+    }, [studentId]);
+
+    if (isLoading) {
+        return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
+    }
+    if (error) {
+        return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
+    }
+    if (!student || !dojo) {
+        return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p>Não foi possível carregar o perfil do aluno.</p></div>;
+    }
+
+    return (
+        <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+            <main className="container mx-auto px-4 py-8">
+                <PublicStudentProfile 
+                    student={student} 
+                    dojoName={dojo.name}
+                    teamName={dojo.team_name}
+                    teamLogoUrl={dojo.team_logo_url}
+                    onBack={() => window.history.back()}
+                />
+            </main>
+        </div>
+    );
+};
+
+
+// --- Authenticated App Component ---
+
+const AuthenticatedApp: React.FC = () => {
   // Global State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -34,10 +168,7 @@ const App: React.FC = () => {
 
   // UI/Navigation State
   const [view, setView] = useState<AppView>('dashboard');
-  const [previousView, setPreviousView] = useState<AppView>('dashboard');
-  const [publicProfileStudent, setPublicProfileStudent] = useState<Student | null>(null);
   
-
   // --- Effects ---
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -158,10 +289,7 @@ const App: React.FC = () => {
         .eq('id', studentId);
 
       if (error) {
-        // Log the specific error message instead of the whole object to avoid "[object Object]" in the console.
         console.error('Supabase unlink student error:', error.message);
-        // We will throw a more detailed error message to make debugging easier.
-        // The RLS error message is the real issue.
         throw new Error(
           `Erro de segurança do banco de dados: ${error.message}. ` +
           `Isso geralmente é causado por uma política de segurança (RLS) no Supabase que impede a atualização. ` +
@@ -214,10 +342,6 @@ const App: React.FC = () => {
 
   // --- UI Handlers ---
   const handleNavigate = (newView: AppView) => {
-    if (newView !== view) {
-      setPreviousView(view);
-    }
-    // Quando navegar para o gerador de diplomas pelo menu, garanta que não há alunos pré-selecionados.
     if (newView === 'diploma_generator') {
         setStudentsForDiploma([]);
     }
@@ -225,14 +349,11 @@ const App: React.FC = () => {
   };
   
   const handleViewPublicProfile = (student: Student) => {
-    setPublicProfileStudent(student);
-    setPreviousView(view);
-    setView('public_profile');
+    window.open(`/student/${student.id}`, '_blank');
   }
 
   const handleNavigateToDiplomaGenerator = (studentsToCertify: Student[]) => {
     setStudentsForDiploma(studentsToCertify);
-    setPreviousView(view);
     setView('diploma_generator');
   };
   
@@ -257,13 +378,10 @@ const App: React.FC = () => {
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
         return <GradingView events={graduationEvents} exams={exams} students={students} onFinalizeGrading={handleFinalizeGrading} />;
-      case 'public_profile':
-        if (!publicProfileStudent || !dojo) return <Dashboard onNavigate={setView} />;
-        return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView(previousView)} />;
       case 'public_dojo_page':
-        return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} />;
+        return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} isOwnerPreview={true} />;
       case 'diploma_generator':
-        return <DiplomaGenerator students={studentsForDiploma} dojo={dojo!} onBack={() => setView(previousView)} user={currentUser!} />;
+        return <DiplomaGenerator students={studentsForDiploma} dojo={dojo!} onBack={() => setView('dojo_manager')} user={currentUser!} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;
@@ -287,5 +405,22 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+// --- Main App Router ---
+
+const App: React.FC = () => {
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+
+  if (pathParts[0] === 'dojo' && pathParts[1]) {
+    return <PublicDojoPageLoader dojoIdOrSlug={pathParts[1]} />;
+  }
+
+  if (pathParts[0] === 'student' && pathParts[1]) {
+    return <PublicStudentProfileLoader studentId={pathParts[1]} />;
+  }
+
+  return <AuthenticatedApp />;
+};
+
 
 export default App;
