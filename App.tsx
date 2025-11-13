@@ -1,23 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { AppStep, DiplomaData, MartialArt, User, GeneratedDiploma, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry } from './types';
-import { MARTIAL_ARTS } from './constants';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import CreateDojoForm from './components/dojo/CreateDojoForm';
 import DojoManager from './components/dojo/DojoManager';
-import MartialArtSelector from './components/MartialArtSelector';
-import DiplomaForm from './components/DiplomaForm';
-import DiplomaPreview from './components/DiplomaPreview';
 import ExamCreator from './components/exams/ExamCreator';
 import GradingView from './components/grading/GradingView';
 import PublicStudentProfile from './components/student/PublicStudentProfile';
-import { generateDiplomaVariations } from './services/geminiService';
 import Header from './components/layout/Header';
 import SpinnerIcon from './components/icons/SpinnerIcon';
 
-export type AppView = 'dashboard' | 'dojo_manager' | 'diploma_generator' | 'exams' | 'grading' | 'public_profile';
+export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile';
 
 const App: React.FC = () => {
   // Global State
@@ -37,11 +32,6 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>('dashboard');
   const [publicProfileStudent, setPublicProfileStudent] = useState<Student | null>(null);
   
-  // Diploma Generator State
-  const [diplomaStep, setDiplomaStep] = useState<AppStep>(AppStep.SELECT_ART);
-  const [selectedArt, setSelectedArt] = useState<MartialArt | null>(null);
-  const [diplomaData, setDiplomaData] = useState<DiplomaData | null>(null);
-  const [generatedDiplomas, setGeneratedDiplomas] = useState<GeneratedDiploma[]>([]);
 
   // --- Effects ---
   useEffect(() => {
@@ -224,8 +214,7 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (newView: AppView) => {
-    if (newView === 'dashboard') handleResetApp();
-    else setView(newView);
+    setView(newView);
   };
   
   const handleViewPublicProfile = (student: Student) => {
@@ -236,60 +225,8 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
-  
-  const handleDiplomaFlowReset = () => {
-    setDiplomaStep(AppStep.SELECT_ART);
-    setSelectedArt(null);
-    setDiplomaData(null);
-    setGeneratedDiplomas([]);
-    setError(null);
-  };
-
-  const handleResetApp = () => {
-    handleDiplomaFlowReset();
-    setView('dashboard');
-  }
-
-  // --- Diploma Generation ---
-  const handleArtSelect = (art: MartialArt) => {
-    setSelectedArt(art);
-    setDiplomaStep(AppStep.FILL_FORM);
-  };
-
-  const handleFormSubmit = async (data: DiplomaData) => {
-    setDiplomaData(data);
-    setIsLoading(true);
-    setError(null);
-    setDiplomaStep(AppStep.GENERATE);
-
-    try {
-      if (!selectedArt) throw new Error("Arte marcial não selecionada.");
-      const variations = await generateDiplomaVariations(data, selectedArt);
-      setGeneratedDiplomas(variations);
-    } catch (err: any) {
-      setError("Falha ao gerar os diplomas. Verifique os dados e a imagem, e tente novamente.");
-      console.error(err);
-      setDiplomaStep(AppStep.FILL_FORM); 
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // --- Render Logic ---
-  const renderDiplomaGenerator = () => {
-    switch (diplomaStep) {
-      case AppStep.SELECT_ART:
-        return <MartialArtSelector arts={MARTIAL_ARTS} onSelect={handleArtSelect} />;
-      case AppStep.FILL_FORM:
-        if (!selectedArt) return null;
-        return <DiplomaForm martialArt={selectedArt} onSubmit={handleFormSubmit} onBack={handleDiplomaFlowReset} />;
-      case AppStep.GENERATE:
-        return <DiplomaPreview isLoading={isLoading} error={error} diplomas={generatedDiplomas} formData={diplomaData!} onReset={handleDiplomaFlowReset} />;
-      default:
-        return <div>Etapa desconhecida</div>;
-    }
-  }
-
   const renderCurrentView = () => {
     if (isLoading) {
       return <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-12 h-12" /></div>;
@@ -302,8 +239,6 @@ const App: React.FC = () => {
     switch(view) {
       case 'dojo_manager':
         return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight}/>;
-      case 'diploma_generator':
-        return renderDiplomaGenerator();
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':

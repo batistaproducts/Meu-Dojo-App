@@ -1,4 +1,3 @@
-
 import { MartialArt, DiplomaStyle, DiplomaFont, ColorScheme } from './types';
 
 export const MARTIAL_ARTS: MartialArt[] = [
@@ -58,34 +57,22 @@ export const MARTIAL_ARTS: MartialArt[] = [
   },
 ];
 
+// FIX: Add missing constants for Diploma Generator feature
 export const DIPLOMA_STYLES: DiplomaStyle[] = [
-    {
-        id: 'minimalist',
-        name: 'Minimalista',
-        thumbnail: 'https://picsum.photos/seed/minimalist/200/140',
-    },
-    {
-        id: 'standard',
-        name: 'Padrão',
-        thumbnail: 'https://picsum.photos/seed/standard/200/140',
-    },
-    {
-        id: 'custom',
-        name: 'Meu Diploma',
-        thumbnail: 'https://picsum.photos/seed/custom/200/140',
-    }
+  { id: 'standard', name: 'Padrão', thumbnail: 'https://picsum.photos/seed/standard/200/283' },
+  { id: 'minimalist', name: 'Minimalista', thumbnail: 'https://picsum.photos/seed/minimalist/200/283' },
+  { id: 'custom', name: 'Meu Diploma', thumbnail: 'https://picsum.photos/seed/custom/200/283' },
 ];
 
 export const DIPLOMA_FONTS: DiplomaFont[] = [
-  { id: 'cinzel', name: 'Cinzel', className: 'font-cinzel' },
-  { id: 'merriweather', name: 'Merriweather', className: 'font-merriweather' },
-  { id: 'roboto-slab', name: 'Roboto Slab', className: 'font-roboto-slab' },
-  { id: 'montserrat', name: 'Montserrat', className: 'font-montserrat' },
+  { id: 'serif', name: 'Clássica (Serif)', className: 'font-serif' },
+  { id: 'sans', name: 'Moderna (Sans-Serif)', className: 'font-sans' },
+  { id: 'mono', name: 'Máquina de Escrever (Mono)', className: 'font-mono' },
 ];
 
 export const DIPLOMA_COLOR_SCHEMES: ColorScheme[] = [
-    { id: 'gold', name: 'Dourado Clássico', primary: '#a78a4a', secondary: '#4a412b', bg: '#fdfbf5', text: '#3d341d' },
-    { id: 'silver', name: 'Prata Elegante', primary: '#8a8a8a', secondary: '#3e3e3e', bg: '#f7f7f7', text: '#2e2e2e' },
-    { id: 'bronze', name: 'Bronze Honra', primary: '#b08d57', secondary: '#5c4323', bg: '#f9f6f2', text: '#4a361c' },
-    { id: 'modern-blue', name: 'Azul Moderno', primary: '#2563eb', secondary: '#1e3a8a', bg: '#f5f9ff', text: '#1e293b' },
+  { id: 'classic', name: 'Clássico', primary: '#A52A2A', secondary: '#C0C0C0', text: '#333333', bg: '#F5F5DC' },
+  { id: 'modern', name: 'Moderno', primary: '#000080', secondary: '#E0E0E0', text: '#212121', bg: '#FFFFFF' },
+  { id: 'dark', name: 'Escuro', primary: '#FFD700', secondary: '#4A4A4A', text: '#F5F5F5', bg: '#1E1E1E' },
+  { id: 'elegant', name: 'Elegante', primary: '#4B0082', secondary: '#D8BFD8', text: '#303030', bg: '#FAF7FA' },
 ];

@@ -1,8 +1,8 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { DiplomaData, MartialArt, GeneratedDiploma } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// FIX: Initialize GoogleGenAI without casting API_KEY to string, as per guidelines.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Helper para extrair mimeType e dados base64 de uma data URL
 const parseDataUrl = (dataUrl: string): { mimeType: string; data: string } | null => {

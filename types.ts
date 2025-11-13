@@ -1,4 +1,3 @@
-
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface Belt {
@@ -12,52 +11,7 @@ export interface MartialArt {
   belts: Belt[];
 }
 
-export interface DiplomaStyle {
-  id: string;
-  name: string;
-  thumbnail: string;
-}
-
-export interface ColorScheme {
-  id: string;
-  name: string;
-  primary: string;
-  secondary: string;
-  bg: string;
-  text: string;
-}
-
-export interface DiplomaFont {
-  id: string;
-  name: string;
-  className: string;
-}
-
-export interface DiplomaData {
-  studentName: string;
-  graduationDate: string;
-  teamName: string;
-  masterName: string;
-  selectedBelt: Belt;
-  selectedStyle: DiplomaStyle;
-  teamLogo: string | null;
-  font: DiplomaFont;
-  colorScheme: ColorScheme;
-  customNotes: string;
-  existingDiplomaImage: string | null;
-}
-
 export interface User extends SupabaseUser {}
-
-export enum AppStep {
-  SELECT_ART,
-  FILL_FORM,
-  GENERATE
-}
-
-export type GeneratedDiploma = 
-  | { type: 'text'; data: { title: string; body: string } }
-  | { type: 'image'; data: { base64: string } };
 
 // Types for Dojo Management refactored for Supabase
 export interface Payment {
@@ -154,3 +108,43 @@ export interface Dojo {
 }
 
 export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;
+
+// FIX: Add missing types for Diploma Generator feature
+export interface DiplomaStyle {
+  id: string;
+  name: string;
+  thumbnail: string;
+}
+
+export interface DiplomaFont {
+  id: string;
+  name: string;
+  className: string;
+}
+
+export interface ColorScheme {
+  id: string;
+  name: string;
+  primary: string;
+  secondary: string;
+  text: string;
+  bg: string;
+}
+
+export interface DiplomaData {
+  studentName: string;
+  graduationDate: string;
+  teamName: string;
+  masterName: string;
+  selectedBelt: Belt;
+  selectedStyle: DiplomaStyle;
+  teamLogo: string | null;
+  font: DiplomaFont;
+  colorScheme: ColorScheme;
+  customNotes: string;
+  existingDiplomaImage: string | null;
+}
+
+export type GeneratedDiploma =
+  | { type: 'text'; data: { title: string; body: string } }
+  | { type: 'image'; data: { base64: string } };
