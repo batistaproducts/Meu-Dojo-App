@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Fight } from '../../types';
 import CloseIcon from '../icons/CloseIcon';

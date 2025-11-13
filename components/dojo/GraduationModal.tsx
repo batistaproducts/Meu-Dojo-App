@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Student, Exam } from '../../types';
 import CloseIcon from '../icons/CloseIcon';
@@ -20,7 +21,7 @@ const GraduationModal: React.FC<GraduationModalProps> = ({ students, exams, onCl
     // For simplicity, we'll suggest exams for the first student's modality
     // A more complex logic could find exams applicable to all selected students
     const primaryModality = students[0].modality;
-    return exams.filter(exam => exam.martialArtName === primaryModality);
+    return exams.filter(exam => exam.martial_art_name === primaryModality);
   }, [students, exams]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,7 +64,7 @@ const GraduationModal: React.FC<GraduationModalProps> = ({ students, exams, onCl
                     {applicableExams.length > 0 ? (
                         applicableExams.map(exam => (
                             <option key={exam.id} value={exam.id}>
-                                {exam.name} (Para Faixa {exam.targetBelt.name})
+                                {exam.name} (Para Faixa {exam.target_belt.name})
                             </option>
                         ))
                     ) : (

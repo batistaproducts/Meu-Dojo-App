@@ -1,3 +1,4 @@
+
 import { MartialArt, DiplomaStyle, DiplomaFont, ColorScheme } from './types';
 
 export const MARTIAL_ARTS: MartialArt[] = [

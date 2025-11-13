@@ -1,3 +1,4 @@
+
 import React, { useState, ChangeEvent } from 'react';
 import { MartialArt, DiplomaData, Belt, DiplomaStyle, DiplomaFont, ColorScheme } from '../types';
 import { DIPLOMA_STYLES, DIPLOMA_FONTS, DIPLOMA_COLOR_SCHEMES } from '../constants';

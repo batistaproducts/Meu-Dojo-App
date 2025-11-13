@@ -3,6 +3,17 @@ import { DiplomaData, MartialArt, GeneratedDiploma } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
+// Helper para extrair mimeType e dados base64 de uma data URL
+const parseDataUrl = (dataUrl: string): { mimeType: string; data: string } | null => {
+    const match = dataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (!match) return null;
+    return {
+        mimeType: match[1],
+        data: match[2],
+    };
+};
+
+
 const generateTextVariations = async (data: DiplomaData, art: MartialArt): Promise<GeneratedDiploma[]> => {
     const prompt = `
       Você é um designer de diplomas de artes marciais. Crie 3 variações de texto distintas para o diploma de graduação de um aluno. O texto deve ser elegante, respeitoso e formal.
@@ -54,67 +65,60 @@ const generateTextVariations = async (data: DiplomaData, art: MartialArt): Promi
 
 const generateImageVariation = async (data: DiplomaData, art: MartialArt): Promise<GeneratedDiploma[]> => {
     if (!data.existingDiplomaImage) {
-        throw new Error("Imagem do diploma existente não fornecida.");
+        throw new Error("Imagem do diploma existente é necessária para este estilo.");
     }
 
-    const imagePart = {
-        inlineData: {
-          mimeType: 'image/jpeg', // Assumes JPEG, could be dynamic
-          data: data.existingDiplomaImage.split(',')[1],
-        },
-    };
+    const imageParts = parseDataUrl(data.existingDiplomaImage);
+    if (!imageParts) {
+        throw new Error("Formato de imagem inválido. Use uma imagem em base64.");
+    }
 
     const prompt = `
-      Analise a imagem deste diploma. É um certificado de ${art.name}.
-      Sua tarefa é criar uma cópia perfeita deste diploma, mantendo o mesmo layout, fontes, cores, texturas e elementos de design.
-      No entanto, você deve substituir as seguintes informações no diploma recriado:
-      - **Nome do Aluno**: substitua o nome existente por "${data.studentName}".
-      - **Graduação Alcançada**: substitua a faixa ou graduação existente por "Faixa ${data.selectedBelt.name}".
-      - **Data da Graduação**: substitua a data existente por "${data.graduationDate}".
-      - **Equipe/Dojo**: substitua o nome da equipe/dojo existente por "${data.teamName}".
-      - **Mestre Responsável**: substitua o nome do mestre existente por "${data.masterName}".
+      Analise a imagem deste diploma. Mantenha o design, layout, fontes e estilo visual exatamente os mesmos.
+      Sua única tarefa é substituir as informações textuais existentes pelas novas informações fornecidas abaixo.
+      Seja preciso na substituição, garantindo que o novo texto se encaixe perfeitamente no lugar do antigo.
 
-      Se o logo da equipe for fornecido, substitua o logo antigo pelo novo.
-      Seja o mais fiel possível ao design original. O resultado deve ser uma imagem de alta qualidade.
+      Novas Informações:
+      - Nome do Aluno: ${data.studentName}
+      - Graduação: Faixa ${data.selectedBelt.name} de ${art.name}
+      - Data: ${data.graduationDate}
+      - Nome da Equipe/Dojo: ${data.teamName}
+      - Nome do Mestre: ${data.masterName}
+      ${data.customNotes ? `- Observações Adicionais (se houver um campo para isso): ${data.customNotes}` : ''}
+
+      Retorne apenas a imagem do diploma atualizado, sem nenhum texto ou explicação adicional.
     `;
-     
-    const contents = {
-        parts: [
-            imagePart,
-            { text: prompt },
-        ],
-    };
-
-    if (data.teamLogo) {
-        contents.parts.push({
-            inlineData: {
-                mimeType: 'image/png', // Assumes PNG, could be dynamic
-                data: data.teamLogo.split(',')[1],
-            }
-        });
-        contents.parts.push({
-            text: "Este é o novo logo da equipe para ser usado no diploma."
-        });
-    }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents,
-      config: {
-          responseModalities: [Modality.IMAGE],
-      },
+        model: 'gemini-2.5-flash-image',
+        contents: {
+            parts: [
+                {
+                    inlineData: {
+                        mimeType: imageParts.mimeType,
+                        data: imageParts.data,
+                    },
+                },
+                {
+                    text: prompt,
+                },
+            ],
+        },
+        config: {
+            responseModalities: [Modality.IMAGE],
+        },
     });
-    
-    const firstPart = response.candidates?.[0]?.content?.parts?.[0];
-    if (firstPart && firstPart.inlineData) {
-        const base64Image = `data:${firstPart.inlineData.mimeType};base64,${firstPart.inlineData.data}`;
-        return [{ type: 'image', data: { base64: base64Image } }];
-    } else {
-        console.error("No image data in Gemini response:", response);
-        throw new Error("A resposta da IA (imagem) não continha os dados da imagem esperada.");
-    }
-}
 
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+            return [{ type: 'image', data: { base64: imageUrl } }];
+        }
+    }
+
+    throw new Error("A IA não conseguiu gerar uma imagem de diploma.");
+};
 
 export const generateDiplomaVariations = async (data: DiplomaData, art: MartialArt): Promise<GeneratedDiploma[]> => {
     if (data.selectedStyle.id === 'custom') {

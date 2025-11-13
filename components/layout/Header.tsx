@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../types';
 import { AppView } from '../../App';
@@ -65,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate,
                                 <a onClick={() => handleNav('dojo_manager')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <UserIcon className="h-5 w-5" />
                                     <span>Gerenciar Dojo</span>
-                                a>
+                                </a>
                                 <a onClick={() => handleNav('exams')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <TrophyIcon className="h-5 w-5" />
                                     <span>Provas</span>
