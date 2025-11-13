@@ -10,8 +10,9 @@ import GradingView from './components/grading/GradingView';
 import PublicStudentProfile from './components/student/PublicStudentProfile';
 import Header from './components/layout/Header';
 import SpinnerIcon from './components/icons/SpinnerIcon';
+import PublicDojoPage from './components/dojo/PublicDojoPage';
 
-export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile';
+export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_profile' | 'public_dojo_page';
 
 const App: React.FC = () => {
   // Global State
@@ -152,18 +153,15 @@ const App: React.FC = () => {
   };
 
   const handleUnlinkStudent = async (studentId: string) => {
-      // FIX: The error "new row violates row-level security policy" indicates a backend
-      // RLS policy is preventing the update. While the root cause is in the database policy,
-      // this code attempts to perform the correct "unlink" action by setting dojo_id to null.
       const { error } = await supabase
         .from('students')
         .update({ dojo_id: null })
         .eq('id', studentId);
 
       if (error) {
-        console.error('Supabase unlink student error:', error);
+        // Log the specific error message instead of the whole object to avoid "[object Object]" in the console.
+        console.error('Supabase unlink student error:', error.message);
         // We will throw a more detailed error message to make debugging easier.
-        // The original "[object Object]" comes from console.log on the error object.
         // The RLS error message is the real issue.
         throw new Error(
           `Erro de segurança do banco de dados: ${error.message}. ` +
@@ -208,8 +206,6 @@ const App: React.FC = () => {
           status: 'completed'
       }).eq('id', event.id!);
 
-      // FIX: Explicitly typing `results` prevents TypeScript from inferring it as `unknown[]`,
-      // which was causing the "Property 'error' does not exist on type 'unknown'" error.
       const results: { error: any }[] = await Promise.all([...studentUpdates, eventUpdate]);
       const anyError = results.find(r => r.error);
       if (anyError) throw anyError.error;
@@ -246,7 +242,7 @@ const App: React.FC = () => {
       return <div className="flex justify-center items-center h-64"><SpinnerIcon className="w-12 h-12" /></div>;
     }
 
-    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading')) {
+    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
 
@@ -260,6 +256,8 @@ const App: React.FC = () => {
       case 'public_profile':
         if (!publicProfileStudent || !dojo) return <Dashboard onNavigate={setView} />;
         return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView('dojo_manager')} />;
+      case 'public_dojo_page':
+        return <PublicDojoPage dojo={dojo!} students={students} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;
