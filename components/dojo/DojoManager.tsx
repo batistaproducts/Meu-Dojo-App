@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Dojo, Student, Exam, StudentGrading } from '../../types';
+import { Dojo, Student, Exam, StudentGrading, Fight } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
@@ -12,13 +13,14 @@ interface DojoManagerProps {
   dojo: Dojo;
   students: Student[];
   exams: Exam[];
-  onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureFile?: File) => Promise<void>;
+  onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
-  onSaveSettings: (logoFile?: File, teamLogoFile?: File) => Promise<void>;
+  onSaveSettings: (logoBase64?: string, teamLogoBase64?: string) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
+  onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight }) => {
   const [view, setView] = useState<'list' | 'profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,13 +44,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
     setFormStudent(null);
   };
   
-  const handleSaveSettingsWrapper = async (logoFile?: File, teamLogoFile?: File) => {
-    await onSaveSettings(logoFile, teamLogoFile);
+  const handleSaveSettingsWrapper = async (logoBase64?: string, teamLogoBase64?: string) => {
+    await onSaveSettings(logoBase64, teamLogoBase64);
     setIsSettingsModalOpen(false);
   };
 
-  const handleSaveStudentWrapper = async (studentToSave: Student, pictureFile?: File) => {
-    await onSaveStudent(studentToSave);
+  const handleSaveStudentWrapper = async (studentToSave: Student, pictureBase64?: string) => {
+    await onSaveStudent(studentToSave, pictureBase64);
     handleCloseForm();
   };
   
@@ -90,7 +92,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
     return <StudentProfile 
         student={selectedStudent} 
         dojo={dojo} 
-        onSaveStudent={onSaveStudent}
+        onAddFight={onAddFight}
         onBack={() => setView('list')} 
         onViewPublicProfile={onViewPublicProfile}
     />;

@@ -1,3 +1,4 @@
+
 import React, { useState, ChangeEvent } from 'react';
 import { Dojo } from '../../types';
 import CloseIcon from '../icons/CloseIcon';
@@ -7,23 +8,20 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 interface DojoSettingsModalProps {
     dojo: Dojo;
     onClose: () => void;
-    onSave: (logoFile?: File, teamLogoFile?: File) => Promise<void>;
+    onSave: (logoBase64?: string, teamLogoBase64?: string) => Promise<void>;
 }
 
 const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, onSave }) => {
-    const [logoPreview, setLogoPreview] = useState(dojo.logo_url);
-    const [teamLogoPreview, setTeamLogoPreview] = useState(dojo.team_logo_url);
-    const [logoFile, setLogoFile] = useState<File | undefined>();
-    const [teamLogoFile, setTeamLogoFile] = useState<File | undefined>();
+    const [logoBase64, setLogoBase64] = useState(dojo.logo_url);
+    const [teamLogoBase64, setTeamLogoBase64] = useState(dojo.team_logo_url);
     const [loading, setLoading] = useState(false);
 
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setPreview: (url?: string) => void, setFile: (file?: File) => void) => {
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>, setter: (url?: string) => void) => {
         const file = e.target.files?.[0];
         if (file) {
-            setFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreview(reader.result as string);
+                setter(reader.result as string);
             };
             reader.readAsDataURL(file);
         }
@@ -32,7 +30,8 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
     const handleSave = async () => {
         setLoading(true);
         try {
-            await onSave(logoFile, teamLogoFile);
+            await onSave(logoBase64, teamLogoBase64);
+            onClose();
         } catch (error) {
             console.error(error);
             alert("Falha ao salvar configurações.");
@@ -55,13 +54,13 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Logo da Academia</label>
                         <div className="flex items-center gap-4">
                             <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                {logoPreview ? <img src={logoPreview} alt="Logo da Academia" className="w-full h-full object-contain rounded-lg" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
+                                {logoBase64 ? <img src={logoBase64} alt="Logo da Academia" className="w-full h-full object-contain rounded-lg" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
                             </div>
                             <label htmlFor="logo-upload" className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm">
                                 <UploadIcon className="w-4 h-4" />
                                 <span>Alterar Logo</span>
                             </label>
-                            <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setLogoPreview, setLogoFile)} />
+                            <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setLogoBase64)} />
                         </div>
                     </div>
 
@@ -70,13 +69,13 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Logo da Equipe</label>
                          <div className="flex items-center gap-4">
                             <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                {teamLogoPreview ? <img src={teamLogoPreview} alt="Logo da Equipe" className="w-full h-full object-cover rounded-full" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
+                                {teamLogoBase64 ? <img src={teamLogoBase64} alt="Logo da Equipe" className="w-full h-full object-cover rounded-full" /> : <span className="text-xs text-gray-400">Sem Logo</span>}
                             </div>
                             <label htmlFor="team-logo-upload" className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg cursor-pointer transition-colors text-sm">
                                 <UploadIcon className="w-4 h-4" />
                                 <span>Alterar Logo</span>
                             </label>
-                            <input id="team-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setTeamLogoPreview, setTeamLogoFile)} />
+                            <input id="team-logo-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, setTeamLogoBase64)} />
                         </div>
                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Este logo aparecerá sobre a foto dos seus alunos no perfil público deles.</p>
                     </div>

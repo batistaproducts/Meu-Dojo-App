@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Student, MartialArt, Belt, Payment, GraduationHistoryEntry } from '../../types';
 import UserIcon from '../icons/UserIcon';
@@ -6,7 +7,7 @@ import UploadIcon from '../icons/UploadIcon';
 interface StudentFormProps {
   student: Student | null;
   modalities: MartialArt[];
-  onSave: (student: Omit<Student, 'dojo_id'>, pictureFile?: File) => Promise<void>;
+  onSave: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -29,8 +30,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
   const [tuition_fee, setTuitionFee] = useState(0);
   const [payments, setPayments] = useState<Payment[]>([]);
   
-  const [profilePicturePreview, setProfilePicturePreview] = useState<string | undefined>(undefined);
-  const [profilePictureFile, setProfilePictureFile] = useState<File | undefined>(undefined);
+  const [profilePictureBase64, setProfilePictureBase64] = useState<string | undefined>(undefined);
   
   useEffect(() => {
     if (student) {
@@ -39,7 +39,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
       setLastGraduationDate(student.last_graduation_date);
       setTuitionFee(student.tuition_fee);
       setPayments(student.payments);
-      setProfilePicturePreview(student.profile_picture_url);
+      setProfilePictureBase64(student.profile_picture_url);
     } else {
         setPayments(generateLast12Months().map(d => ({...d, status: 'open'})));
     }
@@ -62,10 +62,9 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
   const handlePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProfilePictureFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePicturePreview(reader.result as string);
+        setProfilePictureBase64(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -89,14 +88,14 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
     }
     
     const studentData: Omit<Student, 'dojo_id'> = {
-        id: student ? student.id : undefined, // Let Supabase generate ID for new students
+        id: student ? student.id : undefined,
         name,
         modality,
         belt: selectedBelt,
         last_graduation_date,
         tuition_fee,
         payments,
-        profile_picture_url: student?.profile_picture_url, // Keep old URL unless new file is uploaded
+        profile_picture_url: profilePictureBase64, // Pass the base64 string
         championships: student ? student.championships : [],
         fights: student ? student.fights : [],
         graduation_history: student ? student.graduation_history : [],
@@ -113,7 +112,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
         studentData.graduation_history = [initialGraduation];
     }
 
-    onSave(studentData, profilePictureFile);
+    onSave(studentData, profilePictureBase64);
   };
 
   return (
@@ -123,8 +122,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
       <div className="flex flex-col sm:flex-row gap-6 items-center">
         <div className="flex-shrink-0">
             <label htmlFor="profile-picture-upload" className="cursor-pointer group relative">
-                {profilePicturePreview ? (
-                    <img src={profilePicturePreview} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
+                {profilePictureBase64 ? (
+                    <img src={profilePictureBase64} alt="Foto do Aluno" className="w-24 h-24 rounded-full object-cover border-4 border-gray-300 dark:border-gray-600 group-hover:opacity-70 transition-opacity" />
                 ) : (
                     <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center border-4 border-gray-300 dark:border-gray-600 group-hover:bg-gray-300 dark:group-hover:bg-gray-600">
                         <UserIcon className="w-12 h-12 text-gray-400 dark:text-gray-500" />

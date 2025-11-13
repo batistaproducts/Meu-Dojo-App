@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate,
                     {isMenuOpen && (
                         <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden animate-fade-in-sm">
                            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                                <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">Bem-vindo, {user.name}</p>
+                                <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">Bem-vindo, {user.user_metadata.name}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                            </div>
                            <nav className="py-2">
@@ -65,7 +65,7 @@ const Header: React.FC<HeaderProps> = ({ user, theme, onToggleTheme, onNavigate,
                                 <a onClick={() => handleNav('dojo_manager')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <UserIcon className="h-5 w-5" />
                                     <span>Gerenciar Dojo</span>
-                                </a>
+                                a>
                                 <a onClick={() => handleNav('exams')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <TrophyIcon className="h-5 w-5" />
                                     <span>Provas</span>

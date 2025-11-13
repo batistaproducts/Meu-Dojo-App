@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-// FIX: Import 'Fight' and 'GraduationHistoryEntry' types.
 import { AppStep, DiplomaData, MartialArt, User, GeneratedDiploma, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry } from './types';
 import { MARTIAL_ARTS } from './constants';
 import Auth from './components/Auth';
@@ -106,14 +105,6 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
-  // --- File Upload Helper ---
-  const uploadFile = async (file: File, bucket: string, path: string): Promise<string> => {
-    const { data, error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
-    return publicUrl;
-  };
 
   // --- Data Handlers ---
   const handleDojoCreated = async (dojoData: DojoCreationData) => {
@@ -127,25 +118,28 @@ const App: React.FC = () => {
     setDojo(data);
   };
 
-  const handleSaveSettings = async (logoFile?: File, teamLogoFile?: File) => {
+  const handleSaveSettings = async (logoBase64?: string, teamLogoBase64?: string) => {
     if (!dojo) return;
     let updates: Partial<Dojo> = {};
-    if (logoFile) {
-        updates.logo_url = await uploadFile(logoFile, 'dojo-assets', `${dojo.id}/logo_${Date.now()}`);
+    if (logoBase64) {
+        updates.logo_url = logoBase64;
     }
-    if (teamLogoFile) {
-        updates.team_logo_url = await uploadFile(teamLogoFile, 'dojo-assets', `${dojo.id}/teamlogo_${Date.now()}`);
+    if (teamLogoBase64) {
+        updates.team_logo_url = teamLogoBase64;
     }
+
+    if (Object.keys(updates).length === 0) return;
+
     const { data, error } = await supabase.from('dojos').update(updates).eq('id', dojo.id).select().single();
     if (error) throw error;
     setDojo(data);
   };
 
-  const handleSaveStudent = async (studentData: Omit<Student, 'dojo_id'>, pictureFile?: File) => {
+  const handleSaveStudent = async (studentData: Omit<Student, 'dojo_id'>, pictureBase64?: string) => {
     if (!dojo) return;
     
-    if (pictureFile) {
-        studentData.profile_picture_url = await uploadFile(pictureFile, 'dojo-assets', `${dojo.id}/students/${studentData.id || Date.now()}`);
+    if (pictureBase64) {
+        studentData.profile_picture_url = pictureBase64;
     }
     
     const { data, error } = await supabase.from('students').upsert({ ...studentData, dojo_id: dojo.id }).select().single();
@@ -210,9 +204,10 @@ const App: React.FC = () => {
           status: 'completed'
       }).eq('id', event.id!);
 
-      const results = await Promise.all([...studentUpdates, eventUpdate]);
-      // FIX: Cast 'r' to 'any' to allow accessing the 'error' property, fixing the 'unknown' type error.
-      const anyError = results.find((r: any) => r.error);
+      // FIX: Explicitly typing `results` prevents TypeScript from inferring it as `unknown[]`,
+      // which was causing the "Property 'error' does not exist on type 'unknown'" error.
+      const results: { error: any }[] = await Promise.all([...studentUpdates, eventUpdate]);
+      const anyError = results.find(r => r.error);
       if (anyError) throw anyError.error;
       
       await fetchData();
@@ -306,7 +301,7 @@ const App: React.FC = () => {
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile}/>;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight}/>;
       case 'diploma_generator':
         return renderDiplomaGenerator();
       case 'exams':

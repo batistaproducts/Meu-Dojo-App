@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Student, Dojo, Fight } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -8,7 +9,7 @@ interface StudentProfileProps {
   student: Student;
   dojo: Dojo;
   onBack: () => void;
-  onSaveStudent: (student: Student) => Promise<void>;
+  onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
 }
 
@@ -19,13 +20,12 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onSaveStudent, onViewPublicProfile }) => {
+const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, onAddFight, onViewPublicProfile }) => {
   const [isFightModalOpen, setIsFightModalOpen] = useState(false);
 
-  const handleAddFight = async (fight: Omit<Fight, 'id'>) => {
-    const newFight: Fight = { ...fight, id: Date.now().toString() };
-    const updatedStudent = { ...student, fights: [...student.fights, newFight] };
-    await onSaveStudent(updatedStudent);
+  const handleAddFightWrapper = async (fight: Omit<Fight, 'id'>) => {
+    if (!student.id) return;
+    await onAddFight(student.id, fight);
     setIsFightModalOpen(false);
   };
   
@@ -139,7 +139,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
       {isFightModalOpen && (
         <FightRecordModal 
             onClose={() => setIsFightModalOpen(false)}
-            onSave={handleAddFight}
+            onSave={handleAddFightWrapper}
         />
       )}
     </div>
