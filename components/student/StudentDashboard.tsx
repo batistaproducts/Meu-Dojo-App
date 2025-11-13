@@ -3,6 +3,7 @@ import { Student, Dojo, User } from '../../types';
 import GlobeIcon from '../icons/GlobeIcon';
 import UserIcon from '../icons/UserIcon';
 import { supabase } from '../../services/supabaseClient';
+import Logo from '../icons/Logo';
 
 interface StudentDashboardProps {
     student: Student & { dojos: Dojo | null };
@@ -22,7 +23,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user }) =>
              <header className="py-4 bg-white dark:bg-black/30 shadow-md sticky top-0 z-40">
                 <div className="container mx-auto px-4 flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold font-cinzel text-red-800 dark:text-amber-400">Meu Dojo</h1>
+                        <Logo className="h-10" />
                     </div>
                     <div className="flex items-center gap-4">
                         <span className="text-sm hidden sm:inline">Olá, {user.user_metadata.name || student.name}</span>

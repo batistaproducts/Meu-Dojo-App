@@ -21,7 +21,7 @@ export interface Payment {
 }
 
 export interface ChampionshipResult {
-  id: string;
+  id: string; // Corresponds to the Championship ID
   name: string;
   date: string;
   result: string;
@@ -96,6 +96,13 @@ export interface GraduationEvent {
   date: string;
   attendees: StudentGrading[];
   status: 'scheduled' | 'completed';
+}
+
+export interface Championship {
+  id?: string;
+  dojo_id: string;
+  name: string;
+  date: string;
 }
 
 

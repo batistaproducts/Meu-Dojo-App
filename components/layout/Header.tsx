@@ -7,6 +7,8 @@ import TrophyIcon from '../icons/TrophyIcon';
 import ClipboardCheckIcon from '../icons/ClipboardCheckIcon';
 import GlobeIcon from '../icons/GlobeIcon';
 import CertificateIcon from '../icons/CertificateIcon';
+import MedalIcon from '../icons/MedalIcon';
+import Logo from '../icons/Logo';
 
 interface HeaderProps {
     user: User;
@@ -36,9 +38,8 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
     return (
     <header className="py-4 bg-white dark:bg-black/30 shadow-md sticky top-0 z-40">
         <div className="container mx-auto px-4 flex justify-between items-center">
-            <div className='text-left cursor-pointer' onClick={() => handleNav('dashboard')}>
-                <h1 className="text-2xl md:text-3xl font-bold font-cinzel text-red-800 dark:text-amber-400">Meu Dojo</h1>
-                <p className="hidden md:block text-gray-600 dark:text-gray-300 mt-1 text-xs">Gerencie a sua equipe de artes marciais</p>
+            <div className='cursor-pointer' onClick={() => handleNav('dashboard')}>
+                <Logo className="h-10" />
             </div>
             <div className="flex items-center gap-4">
                 <div className="relative" ref={menuRef}>
@@ -63,6 +64,10 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
                                 <a onClick={() => handleNav('public_dojo_page')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <GlobeIcon className="h-5 w-5" />
                                     <span>Minha Página</span>
+                                </a>
+                                <a onClick={() => handleNav('championships')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                    <MedalIcon className="h-5 w-5" />
+                                    <span>Campeonatos</span>
                                 </a>
                                 <a onClick={() => handleNav('exams')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                     <TrophyIcon className="h-5 w-5" />

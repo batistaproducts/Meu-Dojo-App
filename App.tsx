@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt } from './types';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult } from './types';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import CreateDojoForm from './components/dojo/CreateDojoForm';
@@ -13,8 +13,9 @@ import SpinnerIcon from './components/icons/SpinnerIcon';
 import PublicDojoPage from './components/dojo/PublicDojoPage';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import StudentDashboard from './components/student/StudentDashboard';
+import ChampionshipManager from './components/championships/ChampionshipManager';
 
-export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_dojo_page' | 'diploma_generator';
+export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_dojo_page' | 'diploma_generator' | 'championships';
 
 // --- Public Page Loader Components ---
 
@@ -204,7 +205,8 @@ const AuthenticatedApp: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
-  
+  const [championships, setChampionships] = useState<Championship[]>([]);
+
   // Diploma Generator State
   const [studentsForDiploma, setStudentsForDiploma] = useState<Student[]>([]);
 
@@ -225,6 +227,7 @@ const AuthenticatedApp: React.FC = () => {
         setStudents([]);
         setExams([]);
         setGraduationEvents([]);
+        setChampionships([]);
         setView('dashboard');
       }
       setSessionChecked(true);
@@ -261,17 +264,19 @@ const AuthenticatedApp: React.FC = () => {
       if (dojoData) {
         // User is a MASTER
         setDojo(dojoData);
-        const [studentsRes, examsRes, eventsRes] = await Promise.all([
+        const [studentsRes, examsRes, eventsRes, championshipsRes] = await Promise.all([
           supabase.from('students').select('*').eq('dojo_id', dojoData.id),
           supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id)
+          supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id),
+          supabase.from('championships').select('*').eq('dojo_id', dojoData.id)
         ]);
-        if (studentsRes.error || examsRes.error || eventsRes.error) {
-            setError( (studentsRes.error || examsRes.error || eventsRes.error)!.message );
+        if (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error) {
+            setError( (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error)!.message );
         } else {
             setStudents(studentsRes.data || []);
             setExams(examsRes.data || []);
             setGraduationEvents(eventsRes.data || []);
+            setChampionships(championshipsRes.data || []);
         }
         setUserRole('master');
       } else {
@@ -440,6 +445,61 @@ const AuthenticatedApp: React.FC = () => {
       setStudents(updatedStudents || []);
       setGraduationEvents(updatedEvents || []);
   };
+  
+  const handleSaveChampionship = async (championshipData: Omit<Championship, 'dojo_id' | 'id'> & { id?: string }) => {
+    if (!dojo) return;
+    const { data, error } = await supabase.from('championships').upsert({ ...championshipData, dojo_id: dojo.id }).select().single();
+    if (error) throw error;
+    setChampionships(prev => championshipData.id ? prev.map(c => c.id === data.id ? data : c) : [...prev, data]);
+  };
+
+  const handleDeleteChampionship = async (championshipId: string) => {
+    if (!dojo) return;
+    // First, remove participations from all students
+    const studentUpdates = students
+        .filter(s => s.championships.some(c => c.id === championshipId))
+        .map(student => {
+            const updatedChampionships = student.championships.filter(c => c.id !== championshipId);
+            return supabase.from('students').update({ championships: updatedChampionships }).eq('id', student.id);
+        });
+    if (studentUpdates.length > 0) {
+      const results = await Promise.all(studentUpdates);
+      const anyError = results.find(r => r.error);
+      if (anyError) throw anyError.error;
+    }
+    // Then, delete the championship itself
+    const { error: deleteError } = await supabase.from('championships').delete().eq('id', championshipId);
+    if (deleteError) throw deleteError;
+    // Finally, update local state
+    const { data: updatedStudents } = await supabase.from('students').select('*').eq('dojo_id', dojo.id);
+    setStudents(updatedStudents || []);
+    setChampionships(prev => prev.filter(c => c.id !== championshipId));
+  };
+  
+  const handleAddParticipation = async (championship: Championship, studentId: string, result: string) => {
+      const student = students.find(s => s.id === studentId);
+      if (!student || !championship.id) return;
+      const newResult: ChampionshipResult = {
+          id: championship.id,
+          name: championship.name,
+          date: championship.date,
+          result: result,
+      };
+      const updatedChampionships = [...student.championships, newResult];
+      const { data, error } = await supabase.from('students').update({ championships: updatedChampionships }).eq('id', studentId).select().single();
+      if (error) throw error;
+      setStudents(prev => prev.map(s => s.id === data.id ? data : s));
+  };
+
+  const handleRemoveParticipation = async (championshipId: string, studentId: string) => {
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+      const updatedChampionships = student.championships.filter(c => c.id !== championshipId);
+      const { data, error } = await supabase.from('students').update({ championships: updatedChampionships }).eq('id', studentId).select().single();
+      if (error) throw error;
+      setStudents(prev => prev.map(s => s.id === data.id ? data : s));
+  };
+
 
   // --- UI Handlers ---
   const handleNavigate = (newView: AppView) => {
@@ -464,7 +524,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // --- Render Logic ---
   const renderMasterView = () => {
-    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page' || view === 'diploma_generator')) {
+    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page' || view === 'diploma_generator' || view === 'championships')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
 
@@ -475,6 +535,8 @@ const AuthenticatedApp: React.FC = () => {
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
         return <GradingView events={graduationEvents} exams={exams} students={students} onFinalizeGrading={handleFinalizeGrading} />;
+      case 'championships':
+        return <ChampionshipManager championships={championships} students={students} onSaveChampionship={handleSaveChampionship} onDeleteChampionship={handleDeleteChampionship} onAddParticipation={handleAddParticipation} onRemoveParticipation={handleRemoveParticipation} />;
       case 'public_dojo_page':
         return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} isOwnerPreview={true} />;
       case 'diploma_generator':
