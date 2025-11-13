@@ -30,6 +30,7 @@ const App: React.FC = () => {
 
   // UI/Navigation State
   const [view, setView] = useState<AppView>('dashboard');
+  const [previousView, setPreviousView] = useState<AppView>('dashboard');
   const [publicProfileStudent, setPublicProfileStudent] = useState<Student | null>(null);
   
 
@@ -224,11 +225,15 @@ const App: React.FC = () => {
   };
 
   const handleNavigate = (newView: AppView) => {
+    if (newView !== view) {
+      setPreviousView(view);
+    }
     setView(newView);
   };
   
   const handleViewPublicProfile = (student: Student) => {
     setPublicProfileStudent(student);
+    setPreviousView(view);
     setView('public_profile');
   }
   
@@ -255,9 +260,9 @@ const App: React.FC = () => {
         return <GradingView events={graduationEvents} exams={exams} students={students} onFinalizeGrading={handleFinalizeGrading} />;
       case 'public_profile':
         if (!publicProfileStudent || !dojo) return <Dashboard onNavigate={setView} />;
-        return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView('dojo_manager')} />;
+        return <PublicStudentProfile student={publicProfileStudent} dojoName={dojo.name} teamName={dojo.team_name} teamLogoUrl={dojo.team_logo_url} onBack={() => setView(previousView)} />;
       case 'public_dojo_page':
-        return <PublicDojoPage dojo={dojo!} students={students} />;
+        return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={setView} />;

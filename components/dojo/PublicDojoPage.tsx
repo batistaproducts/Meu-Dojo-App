@@ -5,9 +5,10 @@ import UserIcon from '../icons/UserIcon';
 interface PublicDojoPageProps {
   dojo: Dojo;
   students: Student[];
+  onViewPublicProfile: (student: Student) => void;
 }
 
-const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students }) => {
+const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewPublicProfile }) => {
   const getBeltIndex = (modalityName: string, belt: Belt): number => {
     const martialArt = dojo.modalities.find(m => m.name === modalityName);
     if (!martialArt) return -1;
@@ -63,7 +64,11 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students }) => {
             <h3 className="text-3xl font-bold font-cinzel text-center mb-8 text-red-800 dark:text-amber-300">{modality.name}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {modalityStudents.map(student => (
-                <div key={student.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div 
+                  key={student.id} 
+                  onClick={() => onViewPublicProfile(student)}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                >
                   {student.profile_picture_url ? (
                     <img src={student.profile_picture_url} alt={student.name} className="w-24 h-24 rounded-full object-cover mx-auto border-4" style={{borderColor: student.belt.color}} />
                   ) : (
@@ -72,7 +77,7 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students }) => {
                     </div>
                   )}
                   <h4 className="font-bold mt-3 text-gray-900 dark:text-white">{student.name}</h4>
-                  <p className="text-sm font-semibold" style={{ color: student.belt.color === '#FFFFFF' || student.belt.color === '#FFFF00' ? '#000' : 'white', textShadow: '1px 1px 2px rgba(0,0,0,0.2)' }}>
+                  <p className="text-sm font-semibold" style={{ color: student.belt.color === '#FFFFFF' || student.belt.color === '#FFFF00' ? 'black' : 'white', textShadow: '1px 1px 2px rgba(0,0,0,0.2)' }}>
                     Faixa {student.belt.name}
                   </p>
                 </div>
