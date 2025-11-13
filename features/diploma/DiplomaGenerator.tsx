@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Student, Dojo, MartialArt, DiplomaData, User } from '../../types';
 import { MARTIAL_ARTS } from '../../constants';
 import { generateDiplomaPDF } from '../../services/diplomaService';
-import MartialArtSelector from './MartialArtSelector';
 import DiplomaForm from './DiplomaForm';
 import DiplomaPreview from './DiplomaPreview';
 
@@ -13,7 +12,7 @@ interface DiplomaGeneratorProps {
   onBack: () => void;
 }
 
-type Step = 'select_art' | 'form' | 'preview';
+type Step = 'form' | 'preview';
 
 export interface DiplomaResult {
     student: Student;
@@ -32,26 +31,21 @@ const DiplomaGenerator: React.FC<DiplomaGeneratorProps> = ({ students, dojo, use
       const studentArt = MARTIAL_ARTS.find(art => art.name === students[0].modality);
       if (studentArt) {
         setSelectedArt(studentArt);
-        setStep('form');
       } else {
-        setStep('select_art');
+        setSelectedArt(null); 
+        setError(`A arte marcial "${students[0].modality}" do aluno não foi encontrada nos registros.`);
       }
     } else {
-      setStep('select_art');
+      // If for some reason the component is rendered without students, go back.
+      onBack();
     }
-  }, [students]);
-
-  const handleArtSelect = (art: MartialArt) => {
-    setSelectedArt(art);
-    setStep('form');
-  };
+  }, [students, onBack]);
 
   const handleFormSubmit = async (data: DiplomaData) => {
     setIsLoading(true);
     setError(null);
     setStep('preview');
 
-    // A geração agora é síncrona
     try {
         const generatedResults = students.map(student => {
             const pdfDataUri = generateDiplomaPDF(data, student);
@@ -68,28 +62,30 @@ const DiplomaGenerator: React.FC<DiplomaGeneratorProps> = ({ students, dojo, use
 
   const handleReset = () => {
     setResults([]);
-    if (students.length === 0) {
-        setStep('select_art');
-        setSelectedArt(null);
-    } else {
-        setStep('form');
-    }
+    setStep('form');
   };
 
   const renderStep = () => {
+    if (error) {
+        return (
+          <div className="text-center py-20 animate-fade-in">
+            <h2 className="text-2xl font-semibold text-red-600 dark:text-red-500">Ocorreu um Erro</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
+            <button onClick={onBack} className="mt-6 px-6 py-2 text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-lg transition-colors">Voltar</button>
+          </div>
+        );
+      }
+
     switch (step) {
-      case 'select_art':
-        return <MartialArtSelector arts={dojo.modalities} onSelect={handleArtSelect} />;
-      
       case 'form':
-        if (!selectedArt) return <p>Erro: Arte marcial não selecionada.</p>;
+        if (!selectedArt) return <p className="text-center py-10">Carregando informações da arte marcial...</p>;
         return <DiplomaForm 
                     students={students}
                     martialArt={selectedArt} 
                     dojo={dojo}
                     user={user}
                     onSubmit={handleFormSubmit} 
-                    onBack={students.length > 0 ? onBack : () => setStep('select_art')} 
+                    onBack={onBack} 
                 />;
 
       case 'preview':
