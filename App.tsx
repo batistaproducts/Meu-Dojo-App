@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt } from './types';
@@ -108,17 +107,8 @@ const App: React.FC = () => {
     setDojo(data);
   };
 
-  const handleSaveSettings = async (logoBase64?: string, teamLogoBase64?: string) => {
-    if (!dojo) return;
-    let updates: Partial<Dojo> = {};
-    if (logoBase64) {
-        updates.logo_url = logoBase64;
-    }
-    if (teamLogoBase64) {
-        updates.team_logo_url = teamLogoBase64;
-    }
-
-    if (Object.keys(updates).length === 0) return;
+  const handleSaveSettings = async (updates: Partial<Dojo>) => {
+    if (!dojo || Object.keys(updates).length === 0) return;
 
     const { data, error } = await supabase.from('dojos').update(updates).eq('id', dojo.id).select().single();
     if (error) throw error;
@@ -159,6 +149,30 @@ const App: React.FC = () => {
       const { error } = await supabase.from('exams').delete().eq('id', examId);
       if (error) throw error;
       setExams(prev => prev.filter(e => e.id !== examId));
+  };
+
+  const handleUnlinkStudent = async (studentId: string) => {
+      // FIX: The error "new row violates row-level security policy" indicates a backend
+      // RLS policy is preventing the update. While the root cause is in the database policy,
+      // this code attempts to perform the correct "unlink" action by setting dojo_id to null.
+      const { error } = await supabase
+        .from('students')
+        .update({ dojo_id: null })
+        .eq('id', studentId);
+
+      if (error) {
+        console.error('Supabase unlink student error:', error);
+        // We will throw a more detailed error message to make debugging easier.
+        // The original "[object Object]" comes from console.log on the error object.
+        // The RLS error message is the real issue.
+        throw new Error(
+          `Erro de segurança do banco de dados: ${error.message}. ` +
+          `Isso geralmente é causado por uma política de segurança (RLS) no Supabase que impede a atualização. ` +
+          `Verifique se a política da tabela 'students' permite que o 'dojo_id' seja definido como nulo.`
+        );
+      }
+      
+      setStudents(prev => prev.filter(s => s.id !== studentId));
   };
   
   const handleScheduleGraduation = async (exam_id: string, date: string, attendees: StudentGrading[]) => {
@@ -238,7 +252,7 @@ const App: React.FC = () => {
 
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight}/>;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':

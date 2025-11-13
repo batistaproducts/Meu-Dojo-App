@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dojo, Student, Exam, StudentGrading, Fight } from '../../types';
 import StudentProfile from '../student/StudentProfile';
@@ -8,6 +7,8 @@ import DojoSettingsModal from './DojoSettingsModal';
 import PlusIcon from '../icons/PlusIcon';
 import UserIcon from '../icons/UserIcon';
 import EditIcon from '../icons/EditIcon';
+import TrashIcon from '../icons/TrashIcon';
+import SpinnerIcon from '../icons/SpinnerIcon';
 
 interface DojoManagerProps {
   dojo: Dojo;
@@ -15,12 +16,13 @@ interface DojoManagerProps {
   exams: Exam[];
   onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
-  onSaveSettings: (logoBase64?: string, teamLogoBase64?: string) => Promise<void>;
+  onSaveSettings: (updates: Partial<Dojo>) => Promise<void>;
   onViewPublicProfile: (student: Student) => void;
   onAddFight: (studentId: string, fight: Omit<Fight, 'id'>) => Promise<void>;
+  onUnlinkStudent: (studentId: string) => Promise<void>;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent }) => {
   const [view, setView] = useState<'list' | 'profile'>('list');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,6 +30,8 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [formStudent, setFormStudent] = useState<Student | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
+  const [studentToUnlink, setStudentToUnlink] = useState<Student | null>(null);
+  const [isUnlinking, setIsUnlinking] = useState(false);
 
   const handleViewProfile = (student: Student) => {
     setSelectedStudent(student);
@@ -44,8 +48,8 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
     setFormStudent(null);
   };
   
-  const handleSaveSettingsWrapper = async (logoBase64?: string, teamLogoBase64?: string) => {
-    await onSaveSettings(logoBase64, teamLogoBase64);
+  const handleSaveSettingsWrapper = async (updates: Partial<Dojo>) => {
+    await onSaveSettings(updates);
     setIsSettingsModalOpen(false);
   };
 
@@ -54,6 +58,22 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
     handleCloseForm();
   };
   
+  const handleConfirmUnlink = async () => {
+    if (!studentToUnlink) return;
+
+    setIsUnlinking(true);
+    try {
+        await onUnlinkStudent(studentToUnlink.id!);
+        setStudentToUnlink(null);
+    } catch (error: any) {
+        console.error("Failed to unlink student:", error);
+        // Display the detailed error message thrown from the App component.
+        alert(`Falha ao desvincular o aluno:\n\n${error.message}`);
+    } finally {
+        setIsUnlinking(false);
+    }
+  };
+
   const handleStudentSelection = (studentId: string) => {
     setSelectedStudentIds(prev => {
         const newSelection = new Set(prev);
@@ -168,7 +188,8 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
                     <td className="px-6 py-4">{new Date(student.last_graduation_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                     <td className="px-6 py-4 text-right flex justify-end items-center gap-4">
                     <button onClick={() => handleViewProfile(student)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline" title="Ver Perfil"><UserIcon className="w-5 h-5"/></button>
-                    <button onClick={() => handleOpenForm(student)} className="font-medium text-red-600 dark:text-amber-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
+                    <button onClick={() => handleOpenForm(student)} className="font-medium text-yellow-600 dark:text-amber-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
+                    <button onClick={() => setStudentToUnlink(student)} className="font-medium text-red-600 dark:text-red-500 hover:underline" title="Desvincular Aluno"><TrashIcon className="w-5 h-5"/></button>
                     </td>
                 </tr>
                 )) : (
@@ -209,6 +230,35 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, onSave
             onClose={() => setIsSettingsModalOpen(false)}
             onSave={handleSaveSettingsWrapper}
         />
+      )}
+
+      {studentToUnlink && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md relative">
+                <div className="p-8">
+                    <h3 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Confirmar Ação</h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6" dangerouslySetInnerHTML={{ __html: `Tem certeza que deseja desvincular <strong>${studentToUnlink.name}</strong> do seu dojo? <br/>O aluno não será excluído permanentemente, mas não aparecerá mais na sua lista.` }} />
+                    <div className="flex justify-end gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setStudentToUnlink(null)}
+                            disabled={isUnlinking}
+                            className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold disabled:opacity-50"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmUnlink}
+                            disabled={isUnlinking}
+                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+                        >
+                            {isUnlinking ? <SpinnerIcon className="w-5 h-5" /> : 'Desvincular'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
       )}
     </div>
   );
