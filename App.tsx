@@ -253,19 +253,21 @@ const AuthenticatedApp: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      // 1. Is user a dojo owner?
-      const { data: dojoData, error: dojoError } = await supabase
+      // 1. Is user a dojo owner? Fetch the first dojo if they own multiple.
+      const { data: dojosData, error: dojoError } = await supabase
         .from('dojos')
         .select('*')
         .eq('owner_id', currentUser.id)
-        .single();
-      
-      if (dojoError && dojoError.code !== 'PGRST116') {
-        setError("Erro ao buscar dados do dojo: " + dojoError.message);
-        setUserRole(null);
-        setIsLoading(false);
-        return;
+        .limit(1); // Use limit(1) to safely fetch one record, preventing a crash if a user owns multiple dojos.
+
+      if (dojoError) {
+          setError("Erro ao buscar dados do dojo: " + dojoError.message);
+          setUserRole(null);
+          setIsLoading(false);
+          return;
       }
+
+      const dojoData = dojosData?.[0] || null;
 
       if (dojoData) {
         // User is a MASTER
@@ -320,22 +322,30 @@ const AuthenticatedApp: React.FC = () => {
 
         // 2. If no link, try to link by email
         if (!studentId && currentUser.email) {
-            const { data: studentByEmail, error: studentByEmailError } = await supabase
+            const { data: studentsByEmail, error: studentByEmailError } = await supabase
                 .from('students')
                 .select('id')
                 .eq('email', currentUser.email)
-                .single();
+                .limit(1); // Use limit(1) to safely fetch one record even if email is duplicated
             
-            if (studentByEmail && !studentByEmailError) {
+            if (studentByEmailError) {
+                setError("Erro ao buscar aluno por e-mail: " + studentByEmailError.message);
+                setIsLoading(false);
+                return;
+            }
+
+            const studentByEmail = studentsByEmail?.[0];
+
+            if (studentByEmail) {
                 // Found a student by email, create the link
                 const { error: insertLinkError } = await supabase
                     .from('student_user_links')
                     .insert({ user_id: currentUser.id, student_id: studentByEmail.id });
 
-                if (insertLinkError) {
+                if (insertLinkError && insertLinkError.code !== '23505') { // Ignore unique violation errors
                     setError("Falha ao vincular conta de aluno: " + insertLinkError.message);
                 } else {
-                    studentId = studentByEmail.id; // Link created, proceed to fetch profile
+                    studentId = studentByEmail.id; // Link created or already exists, proceed to fetch profile
                 }
             }
         }

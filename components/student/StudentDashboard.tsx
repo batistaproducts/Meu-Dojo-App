@@ -29,30 +29,41 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user }) =>
     }, [user, student]);
     
     useEffect(() => {
+        if (activeTab !== 'team') return;
+
         const loadTeamData = async () => {
-            if (activeTab !== 'team' || !dojo) return;
+            if (teamStudents.length > 0 && dojo) return;
 
-            if (teamStudents.length === 0) {
-                setIsLoading(true);
-                setTeamError(null);
-                try {
-                    const { data, error: studentsError } = await supabase
-                        .from('students')
-                        .select('*')
-                        .eq('dojo_id', dojo.id);
+            setIsLoading(true);
+            setTeamError(null);
 
-                    if (studentsError) throw studentsError;
-                    setTeamStudents(data || []);
-                } catch (err: any) {
-                    setTeamError('Não foi possível carregar os dados da equipe.');
-                } finally {
-                    setIsLoading(false);
+            try {
+                let currentDojo = dojo;
+
+                if (!currentDojo) {
+                    if (!student.dojo_id) {
+                        throw new Error("Seu perfil não está vinculado a um dojo.");
+                    }
+                    const { data, error } = await supabase.from('dojos').select('*').eq('id', student.dojo_id).single();
+                    if (error) throw error;
+                    if (!data) throw new Error("Dojo associado não foi encontrado.");
+                    setDojo(data);
+                    currentDojo = data;
                 }
+
+                const { data: studentsData, error: studentsError } = await supabase.from('students').select('*').eq('dojo_id', currentDojo.id);
+                if (studentsError) throw studentsError;
+                setTeamStudents(studentsData || []);
+
+            } catch (err: any) {
+                setTeamError(err.message || "Não foi possível carregar os dados da equipe.");
+            } finally {
+                setIsLoading(false);
             }
         };
 
         loadTeamData();
-    }, [activeTab, dojo, teamStudents.length]);
+    }, [activeTab]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
