@@ -103,8 +103,10 @@ export interface GraduationEvent {
   dojo_id: string;
   exam_id: string;
   date: string;
-  attendees: StudentGrading[];
+  student_id: string;
   status: 'scheduled' | 'completed';
+  final_grade?: number;
+  is_approved?: boolean;
 }
 
 export interface Championship {

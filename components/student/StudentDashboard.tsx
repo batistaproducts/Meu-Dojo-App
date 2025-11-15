@@ -98,7 +98,7 @@ const EditProfileModal: React.FC<{
 
 // --- Main Dashboard Component ---
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams'>('profile');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
     const [dojo, setDojo] = useState<Dojo | null>(student?.dojos || null);
     const [isLoading, setIsLoading] = useState(false);
@@ -281,6 +281,33 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                         onViewPublicProfile={() => {}}
                     />
                 );
+            case 'exams':
+                if (scheduledEvent && scheduledExam) {
+                    return (
+                        <div className="animate-fade-in max-w-4xl mx-auto">
+                            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">Provas Agendadas</h3>
+                                <div className="space-y-4 text-lg text-gray-700 dark:text-gray-300">
+                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Data:</span> {new Date(scheduledEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Prova:</span> {scheduledExam.name}</p>
+                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Faixa Alvo:</span> {scheduledExam.target_belt.name}</p>
+                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Nota Mínima:</span> {scheduledExam.min_passing_grade.toFixed(1)}</p>
+                                    <div className="pt-4">
+                                        <p className="font-semibold text-gray-500 dark:text-gray-400 mb-2">Conteúdo da Prova:</p>
+                                        <ul className="list-disc list-inside space-y-2 pl-4 text-gray-800 dark:text-gray-200">
+                                            {scheduledExam.exercises.map(ex => <li key={ex.id}>{ex.name}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="text-center py-20 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <p className="text-gray-500 dark:text-gray-400">Você não tem nenhuma prova de graduação agendada no momento.</p>
+                    </div>
+                );
             default:
                 return null;
         }
@@ -311,6 +338,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}
                         >
                             Minha Equipe
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('exams')}
+                            className={`${
+                                activeTab === 'exams'
+                                ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}
+                        >
+                            Provas
                         </button>
                     </nav>
                 </div>

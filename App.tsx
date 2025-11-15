@@ -327,26 +327,30 @@ const AuthenticatedApp: React.FC = () => {
                     
                     setStudentProfile(studentData);
                     
-                    // Fetch scheduled event for the student
                     const { data: eventData, error: eventError } = await supabase
-                      .from('graduation_events')
-                      .select('*')
-                      .eq('status', 'scheduled')
-                      .contains('attendees', JSON.stringify([{ studentId: studentId }]))
-                      .limit(1)
-                      .maybeSingle();
-
-                    if (eventError) console.error("Error fetching scheduled event:", eventError.message);
-
-                    if (eventData) {
-                      setScheduledGraduationEvent(eventData);
-                      const { data: examData, error: examError } = await supabase
-                        .from('exams')
+                        .from('graduation_events')
                         .select('*')
-                        .eq('id', eventData.exam_id)
-                        .single();
-                      if (examError) console.error("Error fetching exam details:", examError.message);
-                      else setScheduledExamDetails(examData);
+                        .eq('student_id', studentId)
+                        .eq('status', 'scheduled')
+                        .limit(1)
+                        .maybeSingle();
+                    
+                    if (eventError) {
+                        console.error("Error fetching scheduled event:", eventError.message);
+                    }
+                    
+                    if (eventData) {
+                        setScheduledGraduationEvent(eventData);
+                        const { data: examData, error: examError } = await supabase
+                          .from('exams')
+                          .select('*')
+                          .eq('id', eventData.exam_id)
+                          .single();
+                        if (examError) console.error("Error fetching exam details:", examError.message);
+                        else setScheduledExamDetails(examData);
+                    } else {
+                        setScheduledGraduationEvent(null);
+                        setScheduledExamDetails(null);
                     }
 
                 } else if (role === 'M' || role === 'S') {
@@ -582,47 +586,72 @@ const AuthenticatedApp: React.FC = () => {
       setStudents(prev => prev.filter(s => s.id !== studentId));
   };
   
-  const handleScheduleGraduation = async (exam_id: string, date: string, attendees: StudentGrading[]) => {
+  const handleScheduleGraduation = async (exam_id: string, date: string, attendees: Pick<StudentGrading, 'studentId'>[]) => {
       if(!dojo) return;
-      const { data, error } = await supabase.from('graduation_events').insert({ dojo_id: dojo.id, exam_id, date, attendees, status: 'scheduled' }).select().single();
+
+      const eventsToInsert = attendees.map(attendee => ({
+        dojo_id: dojo.id,
+        exam_id,
+        date,
+        student_id: attendee.studentId,
+        status: 'scheduled' as const,
+      }));
+
+      const { data, error } = await supabase.from('graduation_events').insert(eventsToInsert).select();
       if(error) throw error;
-      setGraduationEvents(prev => [...prev, data]);
+      setGraduationEvents(prev => [...prev, ...data]);
   };
 
-  const handleFinalizeGrading = async (event: GraduationEvent, updatedAttendees: StudentGrading[]) => {
-      const approvedStudents = students.filter(s => updatedAttendees.find(a => a.studentId === s.id)?.isApproved);
-      const exam = exams.find(e => e.id === event.exam_id);
-      if (!exam || !dojo) return;
+  const handleFinalizeGrading = async (originalEventRows: GraduationEvent[], updatedAttendees: StudentGrading[]) => {
+    if (!dojo) return;
+    const exam = exams.find(e => e.id === originalEventRows[0].exam_id);
+    if (!exam) return;
 
-      const studentUpdates = approvedStudents.map(student => {
-          const attendeeInfo = updatedAttendees.find(a => a.studentId === student.id)!;
-          const newHistoryEntry: GraduationHistoryEntry = {
-              id: `${Date.now()}_${student.id}`,
-              date: event.date,
-              belt: exam.target_belt,
-              grade: attendeeInfo.finalGrade!,
-              examName: exam.name,
-          };
-          return supabase.from('students').update({
-              belt: exam.target_belt,
-              last_graduation_date: event.date,
-              graduation_history: [...student.graduation_history, newHistoryEntry]
-          }).eq('id', student.id);
-      });
+    const studentUpdates: Promise<any>[] = [];
+    const eventUpdates: Promise<any>[] = [];
 
-      const eventUpdate = supabase.from('graduation_events').update({
-          attendees: updatedAttendees,
-          status: 'completed'
-      }).eq('id', event.id!);
+    for (const attendee of updatedAttendees) {
+        const student = students.find(s => s.id === attendee.studentId);
+        if (!student) continue;
 
-      const results: { error: any }[] = await Promise.all([...studentUpdates, eventUpdate]);
-      const anyError = results.find(r => r.error);
-      if (anyError) throw anyError.error;
-      
-      const { data: updatedStudents } = await supabase.from('students').select('*').eq('dojo_id', dojo.id);
-      const { data: updatedEvents } = await supabase.from('graduation_events').select('*').eq('dojo_id', dojo.id);
-      setStudents(updatedStudents || []);
-      setGraduationEvents(updatedEvents || []);
+        const eventRow = originalEventRows.find(r => r.student_id === attendee.studentId);
+        if (eventRow) {
+            eventUpdates.push(
+                supabase.from('graduation_events').update({
+                    final_grade: attendee.finalGrade,
+                    is_approved: attendee.isApproved,
+                    status: 'completed'
+                }).eq('id', eventRow.id!)
+            );
+        }
+        
+        if (attendee.isApproved) {
+            const newHistoryEntry: GraduationHistoryEntry = {
+                id: `${Date.now()}_${student.id}`,
+                date: originalEventRows[0].date,
+                belt: exam.target_belt,
+                grade: attendee.finalGrade!,
+                examName: exam.name,
+            };
+            studentUpdates.push(
+                supabase.from('students').update({
+                    belt: exam.target_belt,
+                    last_graduation_date: originalEventRows[0].date,
+                    graduation_history: [...student.graduation_history, newHistoryEntry]
+                }).eq('id', student.id)
+            );
+        }
+    }
+    
+    const results = await Promise.all([...eventUpdates, ...studentUpdates]);
+    const anyError = results.find(r => r.error);
+    if (anyError) throw anyError.error;
+    
+    // Refresh local state
+    const { data: updatedStudents } = await supabase.from('students').select('*').eq('dojo_id', dojo.id);
+    const { data: updatedEvents } = await supabase.from('graduation_events').select('*').eq('dojo_id', dojo.id);
+    setStudents(updatedStudents || []);
+    setGraduationEvents(updatedEvents || []);
   };
   
   const handleSaveChampionship = async (championshipData: Omit<Championship, 'dojo_id' | 'id'> & { id?: string }) => {

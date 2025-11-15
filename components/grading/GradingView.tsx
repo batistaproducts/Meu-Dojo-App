@@ -1,20 +1,62 @@
-
 import React, { useState, useMemo } from 'react';
 import { GraduationEvent, Exam, Student, StudentGrading } from '../../types';
+
+interface GroupedEvent {
+    id: string;
+    date: string;
+    exam: Exam | undefined;
+    rows: GraduationEvent[];
+}
 
 interface GradingViewProps {
   events: GraduationEvent[];
   exams: Exam[];
   students: Student[];
-  onFinalizeGrading: (event: GraduationEvent, updatedAttendees: StudentGrading[]) => Promise<void>;
+  onFinalizeGrading: (originalEventRows: GraduationEvent[], updatedAttendees: StudentGrading[]) => Promise<void>;
 }
 
 const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFinalizeGrading }) => {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
     const [grades, setGrades] = useState<Record<string, number>>({});
     
-    const selectedEvent = useMemo(() => events.find(e => e.id === selectedEventId), [selectedEventId, events]);
-    const selectedExam = useMemo(() => exams.find(ex => ex.id === selectedEvent?.exam_id), [selectedEvent, exams]);
+    const groupedEvents = useMemo(() => {
+        const groups: Record<string, { exam: Exam | undefined; date: string; rows: GraduationEvent[] }> = {};
+        events
+            .filter(e => e.status === 'scheduled')
+            .forEach(eventRow => {
+                const groupId = `${eventRow.date}-${eventRow.exam_id}`;
+                if (!groups[groupId]) {
+                    groups[groupId] = {
+                        exam: exams.find(ex => ex.id === eventRow.exam_id),
+                        date: eventRow.date,
+                        rows: [],
+                    };
+                }
+                groups[groupId].rows.push(eventRow);
+            });
+        return Object.entries(groups).map(([id, data]) => ({ id, ...data }));
+    }, [events, exams]);
+
+    const completedEvents = useMemo(() => {
+        const groups: Record<string, { exam: Exam | undefined; date: string; rows: GraduationEvent[] }> = {};
+         events
+            .filter(e => e.status === 'completed')
+            .forEach(eventRow => {
+                const groupId = `${eventRow.date}-${eventRow.exam_id}`;
+                if (!groups[groupId]) {
+                    groups[groupId] = {
+                        exam: exams.find(ex => ex.id === eventRow.exam_id),
+                        date: eventRow.date,
+                        rows: [],
+                    };
+                }
+                groups[groupId].rows.push(eventRow);
+            });
+        return Object.values(groups);
+    }, [events, exams]);
+
+    const selectedEvent = useMemo(() => groupedEvents.find(e => e.id === selectedEventId), [selectedEventId, groupedEvents]);
+    const selectedExam = selectedEvent?.exam;
 
     const handleGradeChange = (studentId: string, grade: number) => {
         setGrades(prev => ({ ...prev, [studentId]: Math.max(0, Math.min(10, grade)) }));
@@ -23,13 +65,13 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
     const handleFinalizeGradingWrapper = async () => {
         if (!selectedEvent || !selectedExam) return;
 
-        const updatedAttendees = selectedEvent.attendees.map(attendee => {
-            const finalGrade = grades[attendee.studentId];
+        const updatedAttendees = selectedEvent.rows.map(row => {
+            const finalGrade = grades[row.student_id];
             const isApproved = finalGrade !== undefined && finalGrade >= selectedExam.min_passing_grade;
-            return { ...attendee, finalGrade, isApproved };
+            return { studentId: row.student_id, finalGrade, isApproved };
         });
 
-        await onFinalizeGrading(selectedEvent, updatedAttendees);
+        await onFinalizeGrading(selectedEvent.rows, updatedAttendees);
 
         setSelectedEventId(null);
         setGrades({});
@@ -43,16 +85,13 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h3 className="text-xl font-bold mb-4">Eventos Agendados</h3>
                     <div className="space-y-3">
-                        {events.filter(e => e.status === 'scheduled').map(event => {
-                            const exam = exams.find(ex => ex.id === event.exam_id);
-                            return (
-                                <div key={event.id} onClick={() => setSelectedEventId(event.id!)} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                    <p className="font-semibold">{exam?.name || 'Prova não encontrada'}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Data: {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')} | Alunos: {event.attendees.length}</p>
-                                </div>
-                            )
-                        })}
-                        {events.filter(e => e.status === 'scheduled').length === 0 && (
+                        {groupedEvents.map(eventGroup => (
+                            <div key={eventGroup.id} onClick={() => setSelectedEventId(eventGroup.id)} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                                <p className="font-semibold">{eventGroup.exam?.name || 'Prova não encontrada'}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Data: {new Date(eventGroup.date + 'T00:00:00').toLocaleDateString('pt-BR')} | Alunos: {eventGroup.rows.length}</p>
+                            </div>
+                        ))}
+                        {groupedEvents.length === 0 && (
                              <p className="text-center text-gray-400 dark:text-gray-500 py-8">Nenhum evento de graduação agendado.</p>
                         )}
                     </div>
@@ -70,8 +109,8 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
                     </div>
 
                     <div className="space-y-6">
-                        {selectedEvent.attendees.map(attendee => {
-                            const student = students.find(s => s.id === attendee.studentId);
+                        {selectedEvent.rows.map(row => {
+                            const student = students.find(s => s.id === row.student_id);
                             if (!student) return null;
                             const grade = grades[student.id!];
                             const isApproved = grade !== undefined && grade >= selectedExam.min_passing_grade;
@@ -116,26 +155,23 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
             <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-4">Eventos Concluídos</h3>
                 <div className="space-y-3">
-                    {events.filter(e => e.status === 'completed').map(event => {
-                        const exam = exams.find(ex => ex.id === event.exam_id);
-                        return (
-                            <div key={event.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
-                                <p className="font-semibold">{exam?.name || 'Prova não encontrada'} ({new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')})</p>
-                                <ul className="mt-2 text-sm space-y-1">
-                                    {event.attendees.map(attendee => {
-                                        const student = students.find(s => s.id === attendee.studentId);
-                                        return (
-                                            <li key={attendee.studentId} className={`flex justify-between ${attendee.isApproved ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                                                <span>{student?.name || 'Aluno não encontrado'}</span>
-                                                <span>Nota: {attendee.finalGrade} - {attendee.isApproved ? 'Aprovado' : 'Reprovado'}</span>
-                                            </li>
-                                        )
-                                    })}
-                                </ul>
-                            </div>
-                        )
-                    })}
-                     {events.filter(e => e.status === 'completed').length === 0 && (
+                    {completedEvents.map(eventGroup => (
+                        <div key={eventGroup.id} className="bg-gray-100 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <p className="font-semibold">{eventGroup.exam?.name || 'Prova não encontrada'} ({new Date(eventGroup.date + 'T00:00:00').toLocaleDateString('pt-BR')})</p>
+                            <ul className="mt-2 text-sm space-y-1">
+                                {eventGroup.rows.map(row => {
+                                    const student = students.find(s => s.id === row.student_id);
+                                    return (
+                                        <li key={row.id} className={`flex justify-between ${row.is_approved ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                                            <span>{student?.name || 'Aluno não encontrado'}</span>
+                                            <span>Nota: {row.final_grade} - {row.is_approved ? 'Aprovado' : 'Reprovado'}</span>
+                                        </li>
+                                    )
+                                })}
+                            </ul>
+                        </div>
+                    ))}
+                     {completedEvents.length === 0 && (
                          <p className="text-center text-gray-400 dark:text-gray-500 py-8">Nenhum evento de graduação foi concluído ainda.</p>
                     )}
                 </div>
