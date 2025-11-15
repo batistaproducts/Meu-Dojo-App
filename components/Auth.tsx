@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -103,8 +102,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                         throw new Error(`Sua conta foi criada, mas a solicitação para entrar na academia falhou: ${requestError.message}. Por favor, tente novamente ou contate o suporte.`);
                     }
                     setMessage('Cadastro realizado! Sua solicitação foi enviada para a academia e aguarda aprovação.');
-                } else {
+                } else if (userType === 'master' && data.user) {
+                    // The creation of the user link is now deferred to the first login (handled in App.tsx)
+                    // This avoids RLS policy violations that occur when trying to insert without an authenticated session.
                     setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
+                } else {
+                     setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
                 }
                 
                 setIsLogin(true); // Switch to login view after successful registration

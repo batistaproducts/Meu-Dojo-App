@@ -67,9 +67,12 @@ export interface Student {
   profile_picture_url?: string;
 }
 
+export type UserRole = 'M' | 'A' | 'S';
+
 export interface StudentUserLink {
-  student_id: string;
+  student_id: string | null;
   user_id: string;
+  user_role_type: UserRole;
 }
 
 export interface ExamExercise {
@@ -120,6 +123,7 @@ export interface Dojo {
   team_logo_url?: string;
   phone?: string;
   instagram_handle?: string;
+  user_role_type: 'M';
 }
 
 export type DojoCreationData = Omit<Dojo, 'id' | 'owner_id'>;

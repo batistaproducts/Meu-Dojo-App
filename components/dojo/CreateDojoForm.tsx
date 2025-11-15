@@ -33,6 +33,7 @@ const CreateDojoForm: React.FC<CreateDojoFormProps> = ({ onDojoCreated }) => {
           name,
           team_name,
           modalities,
+          user_role_type: 'M',
         };
         await onDojoCreated(newDojo);
     } catch (error) {

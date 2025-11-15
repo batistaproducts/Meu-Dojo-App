@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../../types';
-import { AppView } from '../../App';
+import { AppView } from '../../services/roleService';
 import MenuIcon from '../icons/MenuIcon';
 import UserIcon from '../icons/UserIcon';
 import TrophyIcon from '../icons/TrophyIcon';
@@ -10,13 +10,30 @@ import CertificateIcon from '../icons/CertificateIcon';
 import MedalIcon from '../icons/MedalIcon';
 import Logo from '../icons/Logo';
 
+interface NavLink {
+    view: AppView;
+    label: string;
+    icon: React.ReactNode;
+}
+
+const navLinks: NavLink[] = [
+    { view: 'dashboard', label: 'Painel Principal', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
+    { view: 'dojo_manager', label: 'Gerenciar Dojo', icon: <UserIcon className="h-5 w-5" /> },
+    { view: 'public_dojo_page', label: 'Minha Página', icon: <GlobeIcon className="h-5 w-5" /> },
+    { view: 'championships', label: 'Campeonatos', icon: <MedalIcon className="h-5 w-5" /> },
+    { view: 'exams', label: 'Provas', icon: <TrophyIcon className="h-5 w-5" /> },
+    { view: 'grading', label: 'Próxima Graduação', icon: <ClipboardCheckIcon className="h-5 w-5" /> },
+    { view: 'sysadmin_panel', label: 'Painel Admin', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 16v-2m0-10v2m0 6v2m-6-10H4m16 0h-2M6 12H4m16 0h-2m-6-6h2m-2 16h2m-16-8h2m10 0h2" /></svg> },
+];
+
 interface HeaderProps {
     user: User;
     onNavigate: (view: AppView) => void;
     onLogout: () => void;
+    permissions: AppView[];
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, permissions }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -34,6 +51,8 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
         onNavigate(view);
         setIsMenuOpen(false);
     }
+    
+    const availableNavLinks = navLinks.filter(link => permissions.includes(link.view));
 
     return (
     <header className="py-4 bg-white dark:bg-black/30 shadow-md sticky top-0 z-40">
@@ -53,34 +72,12 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout }) => {
                                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                            </div>
                            <nav className="py-2">
-                                <a onClick={() => handleNav('dashboard')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                                    <span>Painel Principal</span>
-                                </a>
-                                <a onClick={() => handleNav('dojo_manager')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <UserIcon className="h-5 w-5" />
-                                    <span>Gerenciar Dojo</span>
-                                </a>
-                                <a onClick={() => handleNav('public_dojo_page')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <GlobeIcon className="h-5 w-5" />
-                                    <span>Minha Página</span>
-                                </a>
-                                <a onClick={() => handleNav('championships')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <MedalIcon className="h-5 w-5" />
-                                    <span>Campeonatos</span>
-                                </a>
-                                <a onClick={() => handleNav('exams')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <TrophyIcon className="h-5 w-5" />
-                                    <span>Provas</span>
-                                </a>
-                                 <a onClick={() => handleNav('grading')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <ClipboardCheckIcon className="h-5 w-5" />
-                                    <span>Próxima Graduação</span>
-                                </a>
-                                {/* <a onClick={() => handleNav('diploma_generator')} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                    <CertificateIcon className="h-5 w-5" />
-                                    <span>Gerador de Diplomas</span>
-                                </a> */}
+                               {availableNavLinks.map(link => (
+                                   <a key={link.view} onClick={() => handleNav(link.view)} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                        {link.icon}
+                                        <span>{link.label}</span>
+                                   </a>
+                               ))}
                            </nav>
                            <div className="p-2 border-t border-gray-200 dark:border-gray-700">
                                 <button onClick={onLogout} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-700 dark:text-amber-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md">

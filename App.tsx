@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink, StudentRequest } from './types';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink, StudentRequest, UserRole } from './types';
+import { AppView, getPermissionsForRole } from './services/roleService';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import CreateDojoForm from './components/dojo/CreateDojoForm';
@@ -14,8 +15,6 @@ import PublicDojoPage from './components/dojo/PublicDojoPage';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import StudentDashboard from './components/student/StudentDashboard';
 import ChampionshipManager from './components/championships/ChampionshipManager';
-
-export type AppView = 'dashboard' | 'dojo_manager' | 'exams' | 'grading' | 'public_dojo_page' | 'diploma_generator' | 'championships';
 
 // --- Public Page Loader Components ---
 
@@ -201,7 +200,8 @@ const AuthenticatedApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Role-based State
-  const [userRole, setUserRole] = useState<'master' | 'student' | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [permissions, setPermissions] = useState<AppView[]>([]);
   const [studentProfile, setStudentProfile] = useState<(Student & { dojos: Dojo | null }) | null>(null);
   const [scheduledGraduationEvent, setScheduledGraduationEvent] = useState<GraduationEvent | null>(null);
   const [scheduledExamDetails, setScheduledExamDetails] = useState<Exam | null>(null);
@@ -232,6 +232,7 @@ const AuthenticatedApp: React.FC = () => {
       if (!session) {
         // Reset everything on logout
         setUserRole(null);
+        setPermissions([]);
         setStudentProfile(null);
         setDojo(null);
         setStudents([]);
@@ -251,252 +252,156 @@ const AuthenticatedApp: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      if (!currentUser) {
-        setUserRole(null);
-        setIsLoading(false);
-        return;
-      }
-      
-      setIsLoading(true);
-      setError(null);
-
-      const signedUpRole = currentUser.user_metadata.user_role;
-
-      if (signedUpRole === 'student') {
-        setUserRole('student');
-        
-        const { data: linkData, error: linkError } = await supabase
-            .from('student_user_links')
-            .select('student_id')
-            .eq('user_id', currentUser.id)
-            .single();
-
-        if (linkError && linkError.code !== 'PGRST116') {
-            setError("Erro ao buscar vínculo de aluno: " + linkError.message);
-            setIsLoading(false);
-            return;
-        }
-
-        const studentId = linkData?.student_id || null;
-        
-        if (studentId) {
-            const { data: studentData, error: studentError } = await supabase
-                .from('students')
-                .select('*, dojos(*)')
-                .eq('id', studentId)
-                .single();
-
-            if (studentError) {
-                setError("Erro ao buscar perfil de aluno: " + studentError.message);
-            } else if (studentData) {
-                setStudentProfile(studentData);
-                
-                const { data: eventData, error: eventError } = await supabase
-                  .from('graduation_events')
-                  .select('*')
-                  .eq('status', 'scheduled')
-                  .contains('attendees', JSON.stringify([{ studentId: studentId }]))
-                  .limit(1)
-                  .maybeSingle();
-
-                if (eventError) {
-                  console.error("Error fetching scheduled event:", eventError.message);
-                }
-
-                if (eventData) {
-                  setScheduledGraduationEvent(eventData);
-                  const { data: examData, error: examError } = await supabase
-                    .from('exams')
-                    .select('*')
-                    .eq('id', eventData.exam_id)
-                    .single();
-                  
-                  if (examError) {
-                    console.error("Error fetching scheduled exam details:", examError.message);
-                  } else {
-                    setScheduledExamDetails(examData);
-                  }
-                }
-            }
-        } else {
-            // Student signed up but is not linked yet (pending approval or rejected)
-            setStudentProfile(null);
-            const { data: requestData, error: requestError } = await supabase
-                .from('student_requests')
-                .select('*, dojos(name)')
-                .eq('user_id', currentUser.id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (requestError) {
-                setError("Erro ao buscar status da solicitação: " + requestError.message);
-            } else {
-                setStudentRequest(requestData as any); 
-            }
-        }
-        
-        setIsLoading(false);
-        return;
-      }
-      
-      // If role is not 'student' (i.e., 'master' or legacy user), check for dojo ownership first
-      const { data: dojosData, error: dojoError } = await supabase
+  const loadMasterData = async (userId: string) => {
+    const { data: dojoData, error: dojoError } = await supabase
         .from('dojos')
         .select('*')
-        .eq('owner_id', currentUser.id)
-        .limit(1);
+        .eq('owner_id', userId)
+        .maybeSingle();
 
-      if (dojoError) {
-          setError("Erro ao buscar dados do dojo: " + dojoError.message);
-          setUserRole(null);
-          setIsLoading(false);
-          return;
-      }
-
-      const dojoData = dojosData?.[0] || null;
-
-      if (dojoData) {
-        // User is a MASTER
+    if (dojoError) throw dojoError;
+    
+    if (dojoData) {
         setDojo(dojoData);
-        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes] = await Promise.all([
+        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes] = await Promise.all([
           supabase.from('students').select('*').eq('dojo_id', dojoData.id),
           supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
           supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id),
           supabase.from('championships').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('student_requests').select('*').eq('dojo_id', dojoData.id).eq('status', 'pending')
+          supabase.from('student_requests').select('*').eq('dojo_id', dojoData.id).eq('status', 'pending'),
+          supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A')
         ]);
-        if (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error || requestsRes.error) {
-            setError( (studentsRes.error || examsRes.error || eventsRes.error || championshipsRes.error || requestsRes.error)!.message );
-        } else {
-            const fetchedStudents = studentsRes.data || [];
-            setStudents(fetchedStudents);
-            setExams(examsRes.data || []);
-            setGraduationEvents(eventsRes.data || []);
-            setChampionships(championshipsRes.data || []);
-            setStudentRequests(requestsRes.data || []);
+        const firstError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
+        if (firstError) throw firstError;
 
-            const studentIds = fetchedStudents.map(s => s.id!).filter(Boolean);
-            if (studentIds.length > 0) {
-                const { data: linksData, error: linksError } = await supabase
-                    .from('student_user_links')
-                    .select('student_id, user_id')
-                    .in('student_id', studentIds);
-                if (linksError) {
-                    setError("Erro ao buscar vínculos de alunos: " + linksError.message);
-                } else {
-                    setStudentUserLinks(linksData || []);
-                }
-            } else {
-                setStudentUserLinks([]);
-            }
-        }
-        setUserRole('master');
-      } else {
-        // Not a dojo owner. Are they a STUDENT?
-        // 1. Check for an existing link
-        const { data: linkData, error: linkError } = await supabase
-            .from('student_user_links')
-            .select('student_id')
-            .eq('user_id', currentUser.id)
-            .single();
+        setStudents(studentsRes.data || []);
+        setExams(examsRes.data || []);
+        setGraduationEvents(eventsRes.data || []);
+        setChampionships(championshipsRes.data || []);
+        setStudentRequests(requestsRes.data || []);
+        setStudentUserLinks(linksRes.data || []);
+    } else {
+        setDojo(null);
+    }
+  };
 
-        if (linkError && linkError.code !== 'PGRST116') { // PGRST116: no rows found
-            setError("Erro ao buscar vínculo de aluno: " + linkError.message);
+
+  useEffect(() => {
+    const loadUserData = async () => {
+        if (!currentUser) {
+            setUserRole(null);
+            setPermissions([]);
             setIsLoading(false);
             return;
         }
 
-        let studentId: string | null = linkData?.student_id || null;
+        setIsLoading(true);
+        setError(null);
 
-        // 2. If no link, try to link by email
-        if (!studentId && currentUser.email) {
-            const { data: studentsByEmail, error: studentByEmailError } = await supabase
-                .from('students')
-                .select('id')
-                .eq('email', currentUser.email)
-                .limit(1); // Use limit(1) to safely fetch one record even if email is duplicated
-            
-            if (studentByEmailError) {
-                setError("Erro ao buscar aluno por e-mail: " + studentByEmailError.message);
-                setIsLoading(false);
-                return;
-            }
+        try {
+            // 1. Try to fetch the user's established link/role
+            const { data: linkData, error: linkError } = await supabase
+                .from('student_user_links')
+                .select('student_id, user_role_type')
+                .eq('user_id', currentUser.id)
+                .maybeSingle(); // Use maybeSingle to avoid error if no link exists yet
 
-            const studentByEmail = studentsByEmail?.[0];
+            if (linkError) throw linkError;
 
-            if (studentByEmail) {
-                // Found a student by email, create the link
-                const { error: insertLinkError } = await supabase
-                    .from('student_user_links')
-                    .insert({ user_id: currentUser.id, student_id: studentByEmail.id });
+            if (linkData) {
+                // User has an established role (M, S, or approved A)
+                const role = linkData.user_role_type as UserRole;
+                const studentId = linkData.student_id;
+                setUserRole(role);
 
-                if (insertLinkError && insertLinkError.code !== '23505') { // Ignore unique violation errors
-                    setError("Falha ao vincular conta de aluno: " + insertLinkError.message);
-                } else {
-                    studentId = studentByEmail.id; // Link created or already exists, proceed to fetch profile
+                const userPermissions = await getPermissionsForRole(role);
+                setPermissions(userPermissions);
+
+                if (role === 'A' && studentId) {
+                    const { data: studentData, error: studentError } = await supabase
+                        .from('students')
+                        .select('*, dojos(*)')
+                        .eq('id', studentId)
+                        .single();
+                    if (studentError) throw studentError;
+                    
+                    setStudentProfile(studentData);
+                    
+                    // Fetch scheduled event for the student
+                    const { data: eventData, error: eventError } = await supabase
+                      .from('graduation_events')
+                      .select('*')
+                      .eq('status', 'scheduled')
+                      .contains('attendees', JSON.stringify([{ studentId: studentId }]))
+                      .limit(1)
+                      .maybeSingle();
+
+                    if (eventError) console.error("Error fetching scheduled event:", eventError.message);
+
+                    if (eventData) {
+                      setScheduledGraduationEvent(eventData);
+                      const { data: examData, error: examError } = await supabase
+                        .from('exams')
+                        .select('*')
+                        .eq('id', eventData.exam_id)
+                        .single();
+                      if (examError) console.error("Error fetching exam details:", examError.message);
+                      else setScheduledExamDetails(examData);
+                    }
+
+                } else if (role === 'M' || role === 'S') {
+                    await loadMasterData(currentUser.id);
                 }
-            }
-        }
-        
-        // 3. If we have a studentId (either from link or just created), fetch the full profile
-        if (studentId) {
-            const { data: studentData, error: studentError } = await supabase
-                .from('students')
-                .select('*, dojos(*)')
-                .eq('id', studentId)
-                .single();
-
-            if (studentError) {
-                setError("Erro ao buscar perfil de aluno: " + studentError.message);
-            } else if (studentData) {
-                setUserRole('student');
-                setStudentProfile(studentData);
-                
-                // Check for scheduled graduation event for this student
-                const { data: eventData, error: eventError } = await supabase
-                  .from('graduation_events')
-                  .select('*')
-                  .eq('status', 'scheduled')
-                  .contains('attendees', JSON.stringify([{ studentId: studentId }]))
-                  .limit(1)
-                  .maybeSingle();
-
-                if (eventError) {
-                  console.error("Error fetching scheduled event:", eventError.message);
-                }
-
-                if (eventData) {
-                  setScheduledGraduationEvent(eventData);
-                  // Now fetch the corresponding exam
-                  const { data: examData, error: examError } = await supabase
-                    .from('exams')
-                    .select('*')
-                    .eq('id', eventData.exam_id)
-                    .single();
-                  
-                  if (examError) {
-                    console.error("Error fetching scheduled exam details:", examError.message);
-                  } else {
-                    setScheduledExamDetails(examData);
-                  }
-                }
-
             } else {
-                // Link exists but student profile not found, might be an issue.
-                // For now, treat as non-student.
-                setUserRole('master');
-                setDojo(null);
+                // No link found, check if they are a student awaiting approval
+                const { data: requestData, error: requestError } = await supabase
+                    .from('student_requests')
+                    .select('*, dojos(name)')
+                    .eq('user_id', currentUser.id)
+                    .in('status', ['pending', 'rejected']) // Check for pending or rejected requests
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (requestError) throw requestError;
+
+                if (requestData) {
+                    // This is a student whose request is pending or was rejected
+                    setUserRole('A'); // Treat them as a student for UI purposes
+                    setPermissions(await getPermissionsForRole('A'));
+                    setStudentRequest(requestData as any);
+                    setStudentProfile(null);
+                } else {
+                    // No link and no request, check if we can recover the user's role from auth metadata.
+                    const intendedRole = currentUser.user_metadata?.user_role;
+
+                    if (intendedRole === 'master') {
+                        // Workaround: A master user exists but has no link, likely due to a DB constraint
+                        // (e.g., student_id is NOT NULL). Proceed by loading their data directly,
+                        // bypassing the need for a link entry.
+                        console.warn("User has 'master' role in metadata but no user link. Proceeding without link entry due to potential DB constraint.");
+                        setUserRole('M');
+                        const userPermissions = await getPermissionsForRole('M');
+                        setPermissions(userPermissions);
+                        await loadMasterData(currentUser.id);
+
+                    } else if (intendedRole === 'student') {
+                        // A student without a request is an orphan because we don't know which dojo they applied to.
+                        // Provide a more specific error message.
+                        throw new Error("Sua conta de aluno foi criada, mas a solicitação de matrícula falhou ou não foi encontrada. Por favor, tente se cadastrar novamente ou contate o responsável pela sua academia.");
+                    } else {
+                        // No link, no request, and no role in metadata. This is the original unrecoverable state.
+                        throw new Error("Seu perfil não foi encontrado. Se você é um novo mestre, pode haver um atraso na configuração. Se for um aluno, sua solicitação pode não ter sido encontrada. Contate o suporte.");
+                    }
+                }
             }
-        } else {
-            // No link, no email match -> new MASTER
-            setUserRole('master');
-            setDojo(null);
+        } catch (err: any) {
+            setError(err.message);
+            setUserRole(null);
+            setPermissions([]);
+        } finally {
+            setIsLoading(false);
         }
-      }
-      setIsLoading(false);
     };
 
     loadUserData();
@@ -714,25 +619,40 @@ const AuthenticatedApp: React.FC = () => {
       };
 
       const { data: newStudent, error: studentError } = await supabase.from('students').insert(newStudentPayload).select().single();
-      if (studentError) throw studentError;
+      if (studentError) {
+          console.error("Error creating student profile:", studentError);
+          throw new Error(`Falha ao criar o perfil do aluno: ${studentError.message}`);
+      }
 
-      const { error: linkError } = await supabase.from('student_user_links').insert({ user_id: request.user_id, student_id: newStudent.id });
+      const { error: linkError } = await supabase.from('student_user_links').insert({ user_id: request.user_id, student_id: newStudent.id, user_role_type: 'A' });
       if (linkError) {
           await supabase.from('students').delete().eq('id', newStudent.id); // Rollback
-          throw linkError;
+          console.error("Error creating user link:", linkError);
+          throw new Error(`Falha ao vincular a conta do aluno: ${linkError.message}. Verifique as permissões (RLS/GRANT) da tabela 'student_user_links'.`);
       }
 
       const { error: requestError } = await supabase.from('student_requests').update({ status: 'approved' }).eq('id', request.id);
-      if (requestError) throw requestError;
+      if (requestError) {
+         // Attempt to roll back everything if the final step fails.
+         await supabase.from('student_user_links').delete().eq('user_id', request.user_id);
+         await supabase.from('students').delete().eq('id', newStudent.id);
+         console.error("Error updating student request:", requestError);
+         throw new Error(`Falha ao atualizar a solicitação do aluno: ${requestError.message}`);
+      }
+
 
       setStudents(prev => [...prev, newStudent]);
       setStudentRequests(prev => prev.filter(req => req.id !== request.id));
-      setStudentUserLinks(prev => [...prev, { user_id: request.user_id, student_id: newStudent.id! }]);
+      setStudentUserLinks(prev => [...prev, { user_id: request.user_id, student_id: newStudent.id!, user_role_type: 'A' }]);
   };
 
 
   // --- UI Handlers ---
   const handleNavigate = (newView: AppView) => {
+    if (!permissions.includes(newView)) {
+        console.warn(`Access denied to view: ${newView}`);
+        return;
+    }
     if (newView === 'diploma_generator') {
         setStudentsForDiploma([]);
     }
@@ -754,10 +674,17 @@ const AuthenticatedApp: React.FC = () => {
 
   // --- Render Logic ---
   const renderMasterView = () => {
-    if (!dojo && (view === 'dojo_manager' || view === 'exams' || view === 'grading' || view === 'public_dojo_page' || view === 'diploma_generator' || view === 'championships')) {
+    if (!permissions.includes(view)) {
+        setView('dashboard');
+        // The component will re-render, and on the next pass, this will render the dashboard.
+        // Return dashboard immediately to avoid rendering an unauthorized component for a frame.
+        return <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
+    }
+    
+    if (!dojo && (view !== 'dashboard')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
-
+    
     switch(view) {
       case 'dojo_manager':
         return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} studentRequests={studentRequests} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} onApproveRequest={handleApproveStudentRequest} onRejectRequest={handleRejectStudentRequest} />;
@@ -771,9 +698,11 @@ const AuthenticatedApp: React.FC = () => {
         return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} isOwnerPreview={true} />;
       case 'diploma_generator':
         return <DiplomaGenerator students={studentsForDiploma} dojo={dojo!} onBack={() => setView('dojo_manager')} user={currentUser!} />;
+      case 'sysadmin_panel':
+        return userRole === 'S' ? <div><h1>Painel SysAdmin</h1><p>Funcionalidade a ser implementada.</p></div> : <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
       case 'dashboard':
       default:
-        return <Dashboard onNavigate={setView} />;
+        return <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
     }
   };
   
@@ -790,10 +719,23 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   if (error) {
-    return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p className="text-red-500">{error}</p></div>;
+    return (
+        <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col justify-center items-center text-center p-4">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
+                <h2 className="text-xl font-bold text-red-600 dark:text-red-500 mb-4">Ocorreu um Erro</h2>
+                <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
+                <button 
+                    onClick={handleLogout} 
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold"
+                >
+                    Voltar para o Login
+                </button>
+            </div>
+        </div>
+    );
   }
 
-  if (userRole === 'student') {
+  if (userRole === 'A') {
     return <StudentDashboard 
         student={studentProfile} 
         user={currentUser} 
@@ -803,10 +745,10 @@ const AuthenticatedApp: React.FC = () => {
     />;
   }
   
-  if (userRole === 'master') {
+  if (userRole === 'M' || userRole === 'S') {
     return (
       <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-         <Header user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} />
+         <Header user={currentUser} onNavigate={handleNavigate} onLogout={handleLogout} permissions={permissions} />
         <main className="container mx-auto px-4 py-8">
           {renderMasterView()}
         </main>
@@ -814,7 +756,7 @@ const AuthenticatedApp: React.FC = () => {
     );
   }
 
-  return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
+  return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><p>Carregando perfil de usuário...</p></div>;
 };
 
 // --- Main App Router ---

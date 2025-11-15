@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest } from '../../types';
 import StudentProfile from '../student/StudentProfile';
