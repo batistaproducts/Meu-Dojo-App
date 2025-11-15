@@ -11,7 +11,9 @@ export interface MartialArt {
   belts: Belt[];
 }
 
-export interface User extends SupabaseUser {}
+// FIX: Changed from an interface extending SupabaseUser to a direct type alias.
+// This resolves TS errors where properties on the Supabase user object (e.g., id, email) were not being recognized.
+export type User = SupabaseUser;
 
 // Types for Dojo Management refactored for Supabase
 export interface Payment {

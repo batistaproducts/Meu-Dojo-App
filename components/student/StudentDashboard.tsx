@@ -256,6 +256,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                             dojoName={dojo?.name}
                             teamName={dojo?.team_name}
                             teamLogoUrl={dojo?.team_logo_url}
+                            scheduledEvent={scheduledEvent}
+                            scheduledExam={scheduledExam}
                         />
                     </div>
                 );
@@ -288,40 +290,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
             {renderHeader()}
             <main className="container mx-auto px-4 py-8">
-                {scheduledEvent && scheduledExam && (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-8 animate-fade-in border-l-4 border-red-500 dark:border-amber-400">
-                        <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Próxima Graduação Agendada</h3>
-                        <div className="grid md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                                <p className="font-semibold text-gray-500 dark:text-gray-400">Data do Evento</p>
-                                <p className="text-lg font-bold">{new Date(scheduledEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-                            </div>
-                            <div>
-                                <p className="font-semibold text-gray-500 dark:text-gray-400">Prova</p>
-                                <p className="text-lg font-bold">{scheduledExam.name}</p>
-                            </div>
-                            <div>
-                                <p className="font-semibold text-gray-500 dark:text-gray-400">Graduação Alvo</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <div className="w-5 h-5 rounded-md" style={{ backgroundColor: scheduledExam.target_belt.color, border: '1px solid rgba(0,0,0,0.2)' }}></div>
-                                    <p className="text-lg font-bold">Faixa {scheduledExam.target_belt.name}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-6">
-                            <div className="flex justify-between items-baseline mb-2">
-                                <h4 className="font-semibold text-gray-700 dark:text-gray-300">Técnicas e Exercícios da Prova:</h4>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Nota mínima: <span className="font-bold text-gray-800 dark:text-gray-200">{scheduledExam.min_passing_grade.toFixed(1)}</span></p>
-                            </div>
-                            <ul className="list-disc list-inside bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md space-y-2 text-gray-800 dark:text-gray-200">
-                                {scheduledExam.exercises.map(exercise => (
-                                    <li key={exercise.id}>{exercise.name}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                )}
-
                 <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
                     <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                         <button

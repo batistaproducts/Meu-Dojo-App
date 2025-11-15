@@ -429,15 +429,116 @@ const AuthenticatedApp: React.FC = () => {
 
   const handleSaveStudent = async (studentData: Omit<Student, 'dojo_id'>, pictureBase64?: string) => {
     if (!dojo) return;
-    
-    if (pictureBase64) {
-        studentData.profile_picture_url = pictureBase64;
-    }
-    
-    const { data, error } = await supabase.from('students').upsert({ ...studentData, dojo_id: dojo.id }).select().single();
-    if (error) throw error;
 
-    setStudents(prev => studentData.id ? prev.map(s => s.id === data.id ? data : s) : [...prev, data]);
+    if (pictureBase64) {
+      studentData.profile_picture_url = pictureBase64;
+    }
+
+    // --- UPDATE EXISTING STUDENT ---
+    if (studentData.id) {
+      const { data, error } = await supabase
+        .from('students')
+        .update({ ...studentData, dojo_id: dojo.id })
+        .eq('id', studentData.id)
+        .select()
+        .single();
+      if (error) throw error;
+      setStudents(prev => prev.map(s => s.id === data.id ? data : s));
+      return; // End execution for updates
+    }
+
+    // --- CREATE NEW STUDENT ---
+    let newAuthUser: User | null = null;
+    let newStudentProfile: Student | null = null;
+    // Get the master's current session to restore it later.
+    const { data: { session: masterSession } } = await supabase.auth.getSession();
+
+    try {
+      // Step 1: Create the authentication user for the student.
+      // Supabase's signUp function automatically logs in the new user,
+      // so we must restore the master's session in the `finally` block.
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: studentData.email,
+        password: '123456', // Default password as requested
+        options: {
+          data: {
+            name: studentData.name,
+            user_role: 'student',
+          }
+        }
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes("User already registered")) {
+          throw new Error(`Um usuário com o email "${studentData.email}" já existe. Se este for um aluno existente, edite seu perfil. Se for um novo aluno, use um email diferente.`);
+        }
+        throw new Error(`Falha ao criar o login do aluno: ${signUpError.message}`);
+      }
+      if (!signUpData.user) throw new Error("Ocorreu um erro inesperado e o usuário de autenticação não foi criado.");
+      
+      newAuthUser = signUpData.user;
+
+      // Step 2: Create the student's profile in the database
+      const { data: studentProfileData, error: studentError } = await supabase
+        .from('students')
+        .insert({ ...studentData, dojo_id: dojo.id })
+        .select()
+        .single();
+
+      if (studentError) throw studentError; // This will be caught and trigger rollback
+      newStudentProfile = studentProfileData;
+
+      // Step 3: Link the auth user and the student profile
+      const { error: linkError } = await supabase
+        .from('student_user_links')
+        .insert({
+          user_id: newAuthUser.id,
+          student_id: newStudentProfile.id,
+          user_role_type: 'A'
+        });
+
+      if (linkError) throw linkError; // This will be caught and trigger rollback
+
+      // --- Success ---
+      // Update the local state to reflect the changes immediately
+      setStudents(prev => [...prev, newStudentProfile!]);
+      setStudentUserLinks(prev => [...prev, { user_id: newAuthUser!.id, student_id: newStudentProfile!.id, user_role_type: 'A' }]);
+
+    } catch (err: any) {
+      // --- Rollback Logic ---
+      console.error("Erro no processo de criação de aluno, iniciando rollback...", err);
+
+      // If linking failed, but profile was created, we need to delete the profile.
+      if (newStudentProfile) {
+        console.warn(`ROLLBACK: Tentando deletar perfil do aluno ID: ${newStudentProfile.id}`);
+        await supabase.from('students').delete().eq('id', newStudentProfile.id);
+      }
+      
+      // If profile creation failed, or linking failed, we need to inform the master to delete the auth user.
+      if (newAuthUser) {
+        console.error(`ROLLBACK NECESSÁRIO: O usuário de autenticação ${newAuthUser.email} (ID: ${newAuthUser.id}) foi criado mas o resto do processo falhou.`);
+        throw new Error(
+          `ERRO CRÍTICO: O login para o aluno (${studentData.email}) foi criado, mas seu perfil não pôde ser salvo ou vinculado. ` +
+          `Para corrigir, por favor, vá ao painel do Supabase, delete este usuário da seção 'Authentication' e tente cadastrar o aluno novamente. ` +
+          `Detalhe do erro: ${err.message}`
+        );
+      }
+      
+      // If only auth creation failed, re-throw the original error.
+      throw err;
+    } finally {
+        // ALWAYS restore the master's session.
+        if (masterSession) {
+            const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: masterSession.access_token,
+                refresh_token: masterSession.refresh_token,
+            });
+            if (setSessionError) {
+                console.error("CRITICAL: Failed to restore master's session. Please refresh the page.", setSessionError);
+                alert("A sessão do mestre não pôde ser restaurada. Por favor, atualize a página para continuar.");
+            }
+        }
+    }
   };
   
   const handleAddFight = async (studentId: string, fight: Omit<Fight, 'id'>) => {

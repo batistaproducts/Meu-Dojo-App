@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { Student } from '../../types';
+import { Student, GraduationEvent, Exam } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
 import UserIcon from '../icons/UserIcon';
+import ChevronDownIcon from '../icons/ChevronDownIcon';
 
 interface PublicStudentProfileProps {
   student: Student;
@@ -11,6 +11,8 @@ interface PublicStudentProfileProps {
   teamLogoUrl?: string;
   onBack?: () => void;
   backButtonText?: string;
+  scheduledEvent?: GraduationEvent | null;
+  scheduledExam?: Exam | null;
 }
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
@@ -20,7 +22,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack, backButtonText }) => {
+const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack, backButtonText, scheduledEvent, scheduledExam }) => {
     
   const fightRecord = student.fights.reduce((acc, fight) => {
     if (fight.result === 'win') acc.wins++;
@@ -113,6 +115,24 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         </div>
         
         <div className="lg:col-span-2 space-y-8">
+            {scheduledEvent && scheduledExam && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow-lg border border-blue-200 dark:border-blue-800">
+                    <h3 className="text-xl font-bold font-cinzel text-blue-800 dark:text-blue-300 mb-4 border-b border-blue-200 dark:border-blue-700 pb-2">Próxima Graduação Agendada</h3>
+                    <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                        <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Data:</span> {new Date(scheduledEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                        <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Prova:</span> {scheduledExam.name}</p>
+                        <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Faixa Alvo:</span> {scheduledExam.target_belt.name}</p>
+                        <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Nota Mínima:</span> {scheduledExam.min_passing_grade.toFixed(1)}</p>
+                        <div>
+                            <p className="font-semibold text-gray-500 dark:text-gray-400 mb-2">Conteúdo da Prova:</p>
+                            <ul className="list-disc list-inside space-y-1 pl-4">
+                                {scheduledExam.exercises.map(ex => <li key={ex.id}>{ex.name}</li>)}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <InfoCard title="Histórico de Exames">
                 {student.graduation_history.filter(g => g.examName !== 'Cadastro Inicial').length > 0 ? (
                     <ul className="space-y-3">
