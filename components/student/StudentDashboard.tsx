@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Student, Dojo, User, GraduationEvent, Exam, StudentRequest } from '../../types';
 import { supabase } from '../../services/supabaseClient';
@@ -310,7 +309,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                             </div>
                         </div>
                         <div className="mt-6">
-                            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">Técnicas e Exercícios da Prova:</h4>
+                            <div className="flex justify-between items-baseline mb-2">
+                                <h4 className="font-semibold text-gray-700 dark:text-gray-300">Técnicas e Exercícios da Prova:</h4>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Nota mínima: <span className="font-bold text-gray-800 dark:text-gray-200">{scheduledExam.min_passing_grade.toFixed(1)}</span></p>
+                            </div>
                             <ul className="list-disc list-inside bg-gray-50 dark:bg-gray-700/50 p-4 rounded-md space-y-2 text-gray-800 dark:text-gray-200">
                                 {scheduledExam.exercises.map(exercise => (
                                     <li key={exercise.id}>{exercise.name}</li>
