@@ -8,22 +8,24 @@
     <meta name="description" content="Uma aplicação para gerenciar seu Dojo, alunos, graduações e emissão de diplomas.">
     <script>
       // Define o tema inicial para evitar 'flash' de tema incorreto
-      // On mobile devices, force light theme.
-      // On desktop, respect the user's saved preference.
-      function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
-      }
+      function applyTheme() {
+        // Verifica se o dispositivo é móvel pelo user agent ou tamanho da tela.
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
 
-      if (isMobile()) {
+        if (isMobile) {
+          // Em dispositivos móveis, força o tema claro.
           document.documentElement.classList.remove('dark');
           localStorage.setItem('theme', 'light');
-      } else {
-          if (localStorage.getItem('theme') === 'light') {
-              document.documentElement.classList.remove('dark');
+        } else {
+          // Em desktops, respeita a preferência salva, com o tema claro como padrão.
+          if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
           } else {
-              document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('dark');
           }
+        }
       }
+      applyTheme();
     </script>
     <script>
       // Habilita o modo escuro baseado em classe para o Tailwind CSS
