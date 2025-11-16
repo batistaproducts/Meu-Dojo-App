@@ -29,11 +29,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     const [selectedDojo, setSelectedDojo] = useState<Dojo | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isPreRegistered, setIsPreRegistered] = useState(false);
 
     useEffect(() => {
         const fetchDojos = async () => {
             if (userType === 'student' && !isLogin) {
-                // FIX: Select all columns to match the Dojo type, which includes 'owner_id' and 'modalities'.
                 const { data, error } = await supabase.from('dojos').select('*');
                 if (error) {
                     console.error("Error fetching dojos:", error);
@@ -45,6 +45,24 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         fetchDojos();
     }, [userType, isLogin]);
     
+    useEffect(() => {
+        const checkEmail = async () => {
+            if (userType === 'student' && !isLogin && email.includes('@') && email.includes('.')) {
+                const { data } = await supabase
+                    .from('students')
+                    .select('id')
+                    .eq('email', email)
+                    .maybeSingle();
+                setIsPreRegistered(!!data);
+            } else {
+                setIsPreRegistered(false);
+            }
+        };
+        const handler = setTimeout(() => checkEmail(), 500); // Debounce
+        return () => clearTimeout(handler);
+    }, [email, userType, isLogin]);
+
+
     const filteredDojos = dojos.filter(d => 
         d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         d.team_name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,45 +90,69 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 if (!name || !email || !password) {
                     throw new Error('Por favor, preencha todos os campos.');
                 }
-                 if (userType === 'student' && !selectedDojo) {
-                    throw new Error('Por favor, selecione a academia que deseja ingressar.');
-                }
-
-                const { data, error: signUpError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            name: name,
-                            user_role: userType,
-                        }
-                    }
-                });
-                if (signUpError) throw signUpError;
                 
-                if (userType === 'student' && data.user) {
-                     const { error: requestError } = await supabase.from('student_requests').insert({
-                        user_id: data.user.id,
-                        dojo_id: selectedDojo!.id,
-                        user_name: name,
-                        user_email: email
+                if (userType === 'master') {
+                    const { error: signUpError } = await supabase.auth.signUp({
+                        email, password, options: { data: { name, user_role: 'master' } }
                     });
-
-                    if (requestError) {
-                        // This is a tricky state. The user is created but the request failed.
-                        // Best we can do is inform them to contact support or try registering again later.
-                        throw new Error(`Sua conta foi criada, mas a solicitação para entrar na academia falhou: ${requestError.message}. Por favor, tente novamente ou contate o suporte.`);
-                    }
-                    setMessage('Cadastro realizado! Sua solicitação foi enviada para a academia e aguarda aprovação.');
-                } else if (userType === 'master' && data.user) {
-                    // The creation of the user link is now deferred to the first login (handled in App.tsx)
-                    // This avoids RLS policy violations that occur when trying to insert without an authenticated session.
+                    if (signUpError) throw signUpError;
                     setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
-                } else {
-                     setMessage('Cadastro realizado! Por favor, verifique seu e-mail para confirmar sua conta e depois faça o login.');
-                }
+                    setIsLogin(true);
                 
-                setIsLogin(true); // Switch to login view after successful registration
+                } else { // Student sign up
+                    
+                    const { data: preRegisteredStudent, error: checkError } = await supabase
+                        .from('students')
+                        .select('id')
+                        .eq('email', email)
+                        .maybeSingle();
+                    if (checkError) throw new Error(`Erro ao verificar e-mail: ${checkError.message}`);
+                    
+                    // --- Auto-approval flow ---
+                    if (preRegisteredStudent) {
+                         const { data, error: signUpError } = await supabase.auth.signUp({
+                            email, password, options: { data: { name, user_role: 'student' } }
+                        });
+                        if (signUpError) throw signUpError;
+                        if (!data.user) throw new Error("Falha ao criar a conta de autenticação.");
+
+                        const { error: linkError } = await supabase.from('student_user_links').insert({
+                            user_id: data.user.id,
+                            student_id: preRegisteredStudent.id,
+                            user_role_type: 'A'
+                        });
+                        if (linkError) {
+                            // This is a critical state. User should contact support.
+                            // We don't attempt to delete the auth user from client-side.
+                            throw new Error(`Sua conta foi criada, mas não pôde ser vinculada ao seu perfil. Contate o suporte. Erro: ${linkError.message}`);
+                        }
+                        setMessage('Conta criada e vinculada com sucesso! Agora você já pode fazer o login.');
+                        setIsLogin(true);
+
+                    // --- Manual request flow ---
+                    } else {
+                        if (!selectedDojo) {
+                            throw new Error('Seu e-mail não foi pré-cadastrado. Por favor, selecione sua academia para enviar uma solicitação.');
+                        }
+                        const { data, error: signUpError } = await supabase.auth.signUp({
+                            email, password, options: { data: { name, user_role: 'student' } }
+                        });
+                        if (signUpError) throw signUpError;
+                        if (!data.user) throw new Error("Falha ao criar a conta de autenticação.");
+
+                        const { error: requestError } = await supabase.from('student_requests').insert({
+                            user_id: data.user.id,
+                            dojo_id: selectedDojo!.id,
+                            user_name: name,
+                            user_email: email
+                        });
+                        if (requestError) {
+                            throw new Error(`Sua conta foi criada, mas a solicitação para entrar na academia falhou: ${requestError.message}.`);
+                        }
+                        setMessage('Cadastro realizado! Sua solicitação foi enviada para a academia e aguarda aprovação.');
+                        setIsLogin(true);
+                    }
+                }
             }
         } catch (err: any) {
             setError(err.message || 'Ocorreu um erro.');
@@ -144,34 +186,41 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                     <InputField label="Senha" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
 
                     {!isLogin && userType === 'student' && (
-                        <div className="relative">
-                            <label htmlFor="dojo" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Procure sua academia</label>
-                            <input
-                                id="dojo"
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value);
-                                    setIsDropdownOpen(true);
-                                    setSelectedDojo(null);
-                                }}
-                                onFocus={() => setIsDropdownOpen(true)}
-                                // onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                                placeholder="Digite o nome da academia ou equipe"
-                                required
-                                className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg block w-full p-2.5"
-                            />
-                            {isDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                                   {filteredDojos.length > 0 ? filteredDojos.map(dojo => (
-                                       <div key={dojo.id} onClick={() => handleSelectDojo(dojo)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
-                                           <img src={dojo.team_logo_url || `https://ui-avatars.com/api/?name=${dojo.team_name.charAt(0)}&background=random`} alt="Logo" className="w-8 h-8 rounded-full object-cover"/>
-                                           <span>{dojo.name} ({dojo.team_name})</span>
-                                       </div>
-                                   )) : <div className="px-4 py-2 text-sm text-gray-500">Nenhuma academia encontrada.</div>}
+                        <>
+                            {isPreRegistered ? (
+                                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg text-center text-sm text-green-800 dark:text-green-300">
+                                    Seu e-mail foi reconhecido! Seu cadastro será vinculado automaticamente à sua academia.
+                                </div>
+                            ) : (
+                                <div className="relative">
+                                    <label htmlFor="dojo" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Procure sua academia</label>
+                                    <input
+                                        id="dojo"
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => {
+                                            setSearchTerm(e.target.value);
+                                            setIsDropdownOpen(true);
+                                            setSelectedDojo(null);
+                                        }}
+                                        onFocus={() => setIsDropdownOpen(true)}
+                                        placeholder="Digite o nome da academia ou equipe"
+                                        required
+                                        className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg block w-full p-2.5"
+                                    />
+                                    {isDropdownOpen && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                        {filteredDojos.length > 0 ? filteredDojos.map(dojo => (
+                                            <div key={dojo.id} onClick={() => handleSelectDojo(dojo)} className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                                                <img src={dojo.team_logo_url || `https://ui-avatars.com/api/?name=${dojo.team_name.charAt(0)}&background=random`} alt="Logo" className="w-8 h-8 rounded-full object-cover"/>
+                                                <span>{dojo.name} ({dojo.team_name})</span>
+                                            </div>
+                                        )) : <div className="px-4 py-2 text-sm text-gray-500">Nenhuma academia encontrada.</div>}
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
                    
                     {error && <p className="text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}

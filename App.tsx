@@ -448,100 +448,25 @@ const AuthenticatedApp: React.FC = () => {
         .single();
       if (error) throw error;
       setStudents(prev => prev.map(s => s.id === data.id ? data : s));
-      return; // End execution for updates
+      return;
     }
 
-    // --- CREATE NEW STUDENT ---
-    let newAuthUser: User | null = null;
-    let newStudentProfile: Student | null = null;
-    // Get the master's current session to restore it later.
-    const { data: { session: masterSession } } = await supabase.auth.getSession();
-
+    // --- CREATE NEW STUDENT PROFILE (WITHOUT AUTH) ---
     try {
-      // Step 1: Create the authentication user for the student.
-      // Supabase's signUp function automatically logs in the new user,
-      // so we must restore the master's session in the `finally` block.
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: studentData.email,
-        password: '123456', // Default password as requested
-        options: {
-          data: {
-            name: studentData.name,
-            user_role: 'student',
-          }
-        }
-      });
+        const { data: studentProfileData, error: studentError } = await supabase
+            .from('students')
+            .insert({ ...studentData, dojo_id: dojo.id })
+            .select()
+            .single();
 
-      if (signUpError) {
-        if (signUpError.message.includes("User already registered")) {
-          throw new Error(`Um usuário com o email "${studentData.email}" já existe. Se este for um aluno existente, edite seu perfil. Se for um novo aluno, use um email diferente.`);
-        }
-        throw new Error(`Falha ao criar o login do aluno: ${signUpError.message}`);
-      }
-      if (!signUpData.user) throw new Error("Ocorreu um erro inesperado e o usuário de autenticação não foi criado.");
-      
-      newAuthUser = signUpData.user;
+        if (studentError) throw studentError;
 
-      // Step 2: Create the student's profile in the database
-      const { data: studentProfileData, error: studentError } = await supabase
-        .from('students')
-        .insert({ ...studentData, dojo_id: dojo.id })
-        .select()
-        .single();
-
-      if (studentError) throw studentError; // This will be caught and trigger rollback
-      newStudentProfile = studentProfileData;
-
-      // Step 3: Link the auth user and the student profile
-      const { error: linkError } = await supabase
-        .from('student_user_links')
-        .insert({
-          user_id: newAuthUser.id,
-          student_id: newStudentProfile.id,
-          user_role_type: 'A'
-        });
-
-      if (linkError) throw linkError; // This will be caught and trigger rollback
-
-      // --- Success ---
-      // Update the local state to reflect the changes immediately
-      setStudents(prev => [...prev, newStudentProfile!]);
-      setStudentUserLinks(prev => [...prev, { user_id: newAuthUser!.id, student_id: newStudentProfile!.id, user_role_type: 'A' }]);
+        // Update local state
+        setStudents(prev => [...prev, studentProfileData]);
 
     } catch (err: any) {
-      // --- Rollback Logic ---
-      console.error("Erro no processo de criação de aluno, iniciando rollback...", err);
-
-      // If linking failed, but profile was created, we need to delete the profile.
-      if (newStudentProfile) {
-        console.warn(`ROLLBACK: Tentando deletar perfil do aluno ID: ${newStudentProfile.id}`);
-        await supabase.from('students').delete().eq('id', newStudentProfile.id);
-      }
-      
-      // If profile creation failed, or linking failed, we need to inform the master to delete the auth user.
-      if (newAuthUser) {
-        console.error(`ROLLBACK NECESSÁRIO: O usuário de autenticação ${newAuthUser.email} (ID: ${newAuthUser.id}) foi criado mas o resto do processo falhou.`);
-        throw new Error(
-          `ERRO CRÍTICO: O login para o aluno (${studentData.email}) foi criado, mas seu perfil não pôde ser salvo ou vinculado. ` +
-          `Para corrigir, por favor, vá ao painel do Supabase, delete este usuário da seção 'Authentication' e tente cadastrar o aluno novamente. ` +
-          `Detalhe do erro: ${err.message}`
-        );
-      }
-      
-      // If only auth creation failed, re-throw the original error.
-      throw err;
-    } finally {
-        // ALWAYS restore the master's session.
-        if (masterSession) {
-            const { error: setSessionError } = await supabase.auth.setSession({
-                access_token: masterSession.access_token,
-                refresh_token: masterSession.refresh_token,
-            });
-            if (setSessionError) {
-                console.error("CRITICAL: Failed to restore master's session. Please refresh the page.", setSessionError);
-                alert("A sessão do mestre não pôde ser restaurada. Por favor, atualize a página para continuar.");
-            }
-        }
+        console.error("Erro ao criar perfil do aluno:", err);
+        throw new Error(`Falha ao criar o perfil do aluno: ${err.message}`);
     }
   };
   
@@ -748,32 +673,35 @@ const AuthenticatedApp: React.FC = () => {
           }],
       };
 
-      const { data: newStudent, error: studentError } = await supabase.from('students').insert(newStudentPayload).select().single();
-      if (studentError) {
-          console.error("Error creating student profile:", studentError);
-          throw new Error(`Falha ao criar o perfil do aluno: ${studentError.message}`);
+      let newStudent: Student | null = null;
+      try {
+        const { data, error: studentError } = await supabase.from('students').insert(newStudentPayload).select().single();
+        if (studentError) throw studentError;
+        newStudent = data;
+
+        const { error: linkError } = await supabase.from('student_user_links').insert({ user_id: request.user_id, student_id: newStudent.id, user_role_type: 'A' });
+        if (linkError) throw linkError;
+        
+        const { error: requestError } = await supabase.from('student_requests').update({ status: 'approved' }).eq('id', request.id);
+        if (requestError) throw requestError;
+
+        // --- Success ---
+        setStudents(prev => [...prev, newStudent!]);
+        setStudentRequests(prev => prev.filter(req => req.id !== request.id));
+        setStudentUserLinks(prev => [...prev, { user_id: request.user_id, student_id: newStudent!.id!, user_role_type: 'A' }]);
+
+      } catch (error: any) {
+         console.error("Erro no processo de aprovação:", error.message);
+         // --- Rollback Logic ---
+         if (newStudent) {
+            console.warn(`ROLLBACK: Deletando perfil do aluno ${newStudent.id}`);
+            // Attempt to delete the student user link first if it exists
+            await supabase.from('student_user_links').delete().match({ student_id: newStudent.id });
+            // Then delete the student profile
+            await supabase.from('students').delete().match({ id: newStudent.id });
+         }
+         throw new Error(`Ocorreu um erro: ${error.message}. As alterações foram desfeitas.`);
       }
-
-      const { error: linkError } = await supabase.from('student_user_links').insert({ user_id: request.user_id, student_id: newStudent.id, user_role_type: 'A' });
-      if (linkError) {
-          await supabase.from('students').delete().eq('id', newStudent.id); // Rollback
-          console.error("Error creating user link:", linkError);
-          throw new Error(`Falha ao vincular a conta do aluno: ${linkError.message}. Verifique as permissões (RLS/GRANT) da tabela 'student_user_links'.`);
-      }
-
-      const { error: requestError } = await supabase.from('student_requests').update({ status: 'approved' }).eq('id', request.id);
-      if (requestError) {
-         // Attempt to roll back everything if the final step fails.
-         await supabase.from('student_user_links').delete().eq('user_id', request.user_id);
-         await supabase.from('students').delete().eq('id', newStudent.id);
-         console.error("Error updating student request:", requestError);
-         throw new Error(`Falha ao atualizar a solicitação do aluno: ${requestError.message}`);
-      }
-
-
-      setStudents(prev => [...prev, newStudent]);
-      setStudentRequests(prev => prev.filter(req => req.id !== request.id));
-      setStudentUserLinks(prev => [...prev, { user_id: request.user_id, student_id: newStudent.id!, user_role_type: 'A' }]);
   };
 
 
