@@ -90,7 +90,7 @@ const App: React.FC = () => {
         const roleMeta = sessionUser.user_metadata.user_role;
         if (roleMeta === 'student') role = 'A';
         // Simple check for SysAdmin (can be improved)
-        if (sessionUser.email === 'admin@sys.com') role = 'S';
+        if (sessionUser.email === 'admin@meudojo.com' || sessionUser.email === 'admin@sys.com') role = 'S';
 
         setUserRole(role);
         const perms = await getPermissionsForRole(role);
@@ -173,15 +173,34 @@ const App: React.FC = () => {
   };
 
   const fetchSysAdminData = async () => {
+      // Fetch ALL data for global analytics
       const { data } = await supabase.from('dojos').select('*');
       setAllDojos(data || []);
+      
       const { data: p } = await supabase.from('products').select('*');
       setProducts(p || []);
+
+      const { data: s } = await supabase.from('students').select('*');
+      setStudents(s || []);
+
+      const { data: g } = await supabase.from('graduation_events').select('*');
+      setGraduationEvents(g || []);
+      
+      const { data: e } = await supabase.from('exams').select('*');
+      setExams(e || []);
   };
 
   // --- Handlers ---
 
-  const handleNavigate = (v: AppView) => setView(v);
+  const handleNavigate = (v: AppView) => {
+      // When Admin navigates to top-level dashboards, reset the specific Dojo context to show global data
+      if (userRole === 'S' && (v === 'dashboard' || v === 'sysadmin_panel' || v === 'metrics' || v === 'admin_store')) {
+          setDojo(null);
+          // Reload global data to ensure it's fresh if they were just editing a specific dojo
+          if (v === 'dashboard' || v === 'metrics') fetchSysAdminData();
+      }
+      setView(v);
+  };
   
   const handleDojoCreated = async (d: DojoCreationData) => {
       if (!user) return;
@@ -202,7 +221,14 @@ const App: React.FC = () => {
        } else {
            await supabase.from('students').insert(payload);
        }
-       await fetchMasterData(user!.id);
+       
+       // Refresh data based on role/context
+       if (userRole === 'S') {
+           // If Admin is in Dojo Context, refresh that dojo's data
+           handleAdminEnterDojoContext(dojo, view);
+       } else {
+           await fetchMasterData(user!.id);
+       }
   };
 
   const handleScheduleGraduation = async (examId: string, date: string, attendees: StudentGrading[]) => {
@@ -215,13 +241,26 @@ const App: React.FC = () => {
            status: 'scheduled' as const
        }));
        await supabase.from('graduation_events').insert(events);
-       await fetchMasterData(user!.id);
+       if (userRole === 'S') {
+           handleAdminEnterDojoContext(dojo, view);
+       } else {
+           await fetchMasterData(user!.id);
+       }
   };
   
   const handleSaveSettings = async (updates: Partial<Dojo>) => {
        if (!dojo) return;
        await supabase.from('dojos').update(updates).eq('id', dojo.id);
-       await fetchMasterData(user!.id);
+       
+       if (userRole === 'S') {
+            // Refresh global list as well
+            const { data } = await supabase.from('dojos').select('*');
+            setAllDojos(data || []);
+            // Refresh current context
+            setDojo({ ...dojo, ...updates });
+       } else {
+           await fetchMasterData(user!.id);
+       }
   };
   
   const handleViewPublicProfile = (s: Student) => {
@@ -235,12 +274,20 @@ const App: React.FC = () => {
       const updatedFights = [...student.fights, newFight];
       
       await supabase.from('students').update({ fights: updatedFights }).eq('id', studentId);
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+        handleAdminEnterDojoContext(dojo!, view);
+      } else {
+        await fetchMasterData(user!.id);
+      }
   };
   
   const handleUnlinkStudent = async (studentId: string) => {
       await supabase.from('students').delete().eq('id', studentId);
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+        handleAdminEnterDojoContext(dojo!, view);
+      } else {
+        await fetchMasterData(user!.id);
+      }
   };
   
   const handleNavigateToDiplomaGenerator = (selectedStudents: Student[]) => {
@@ -284,12 +331,20 @@ const App: React.FC = () => {
        });
        
        await supabase.from('student_requests').update({ status: 'approved' }).eq('id', req.id);
-       await fetchMasterData(user!.id);
+       if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+       } else {
+         await fetchMasterData(user!.id);
+       }
   };
   
   const handleRejectStudentRequest = async (requestId: string) => {
        await supabase.from('student_requests').update({ status: 'rejected' }).eq('id', requestId);
-       await fetchMasterData(user!.id);
+       if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+       } else {
+         await fetchMasterData(user!.id);
+       }
   };
   
   const handleSaveExam = async (exam: Omit<Exam, 'dojo_id'>) => {
@@ -300,12 +355,20 @@ const App: React.FC = () => {
       } else {
           await supabase.from('exams').insert(payload);
       }
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleDeleteExam = async (examId: string) => {
       await supabase.from('exams').delete().eq('id', examId);
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleFinalizeGrading = async (originalRows: GraduationEvent[], updatedAttendees: StudentGrading[]) => {
@@ -338,7 +401,11 @@ const App: React.FC = () => {
               }
           }
       }
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleSaveChampionship = async (championship: Omit<Championship, 'dojo_id' | 'id'> & { id?: string }) => {
@@ -349,12 +416,20 @@ const App: React.FC = () => {
       } else {
           await supabase.from('championships').insert(payload);
       }
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleDeleteChampionship = async (id: string) => {
       await supabase.from('championships').delete().eq('id', id);
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleAddParticipation = async (championship: Championship, studentId: string, result: string) => {
@@ -363,7 +438,11 @@ const App: React.FC = () => {
       const newResult = { id: championship.id!, name: championship.name, date: championship.date, result };
       const updated = [...student.championships, newResult];
       await supabase.from('students').update({ championships: updated }).eq('id', studentId);
-      await fetchMasterData(user!.id);
+      if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleRemoveParticipation = async (championshipId: string, studentId: string) => {
@@ -371,7 +450,11 @@ const App: React.FC = () => {
        if (!student) return;
        const updated = student.championships.filter(c => c.id !== championshipId);
        await supabase.from('students').update({ championships: updated }).eq('id', studentId);
-       await fetchMasterData(user!.id);
+       if (userRole === 'S') {
+         handleAdminEnterDojoContext(dojo!, view);
+      } else {
+         await fetchMasterData(user!.id);
+      }
   };
   
   const handleAddProduct = async (product: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => {
@@ -398,6 +481,7 @@ const App: React.FC = () => {
   
   const handleAdminEnterDojoContext = async (d: Dojo, v: AppView) => {
       setDojo(d);
+      // Fetch detailed data for the specific dojo
       const { data: sData } = await supabase.from('students').select('*').eq('dojo_id', d.id);
       setStudents(sData || []);
       
@@ -407,13 +491,15 @@ const App: React.FC = () => {
       const { data: eData } = await supabase.from('exams').select('*').eq('dojo_id', d.id);
       setExams(eData || []);
 
+      const { data: rData } = await supabase.from('student_requests').select('*').eq('dojo_id', d.id).eq('status', 'pending');
+      setStudentRequests(rData || []);
+
       setView(v);
   };
 
   // --- Render Logic ---
   const renderMasterView = () => {
     if (!permissions.includes(view)) {
-        // Avoid rendering dashboard immediately if permission check fails to allow safe fallback
         if (view !== 'dashboard') {
              setView('dashboard');
              return null;
@@ -427,6 +513,17 @@ const App: React.FC = () => {
     
     switch(view) {
       case 'dojo_manager':
+        if (userRole === 'S' && !dojo) {
+             // If admin tries to access manager without selecting a dojo, redirect to panel
+             return (
+                 <SysAdminPanel 
+                    dojos={allDojos} 
+                    onConfigure={(dojoToEdit) => setAdminSelectedDojo(dojoToEdit)}
+                    onViewStudents={(dojoToView) => handleAdminEnterDojoContext(dojoToView, 'dojo_manager')}
+                    onViewGraduations={(dojoToView) => handleAdminEnterDojoContext(dojoToView, 'grading')}
+                />
+             );
+        }
         return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} studentRequests={studentRequests} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} onApproveRequest={handleApproveStudentRequest} onRejectRequest={handleRejectStudentRequest} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
