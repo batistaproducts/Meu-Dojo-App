@@ -121,7 +121,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
 
   return (
     <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6 text-gray-900 dark:text-white">
-      <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">{student ? 'Editar Aluno' : 'Adicionar Novo Aluno'}</h3>
+      <h3 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white">{student ? 'Editar Aluno' : 'Adicionar Novo Aluno'}</h3>
       
       <div className="flex flex-col sm:flex-row gap-6 items-center">
         <div className="flex-shrink-0">
@@ -142,16 +142,16 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
         <div className="w-full grid md:grid-cols-2 gap-6">
             <div>
                 <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+                <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" />
             </div>
             <div>
                 <label htmlFor="studentEmail" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Email (para login do aluno)</label>
-                <input id="studentEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLinked} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="email@doaluno.com" />
+                <input id="studentEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isLinked} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="email@doaluno.com" />
                 {isLinked && <p className="text-xs text-gray-400 mt-1">Email não pode ser alterado (login vinculado).</p>}
             </div>
             <div>
                 <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
-                <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5">
+                <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5">
                 {modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
             </div>
@@ -166,7 +166,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
                 type="button"
                 key={belt.name}
                 onClick={() => setSelectedBelt(belt)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-amber-400 ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-white ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`}
                 style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF', textShadow: '1px 1px 2px rgba(0,0,0,0.4)' }}
               >
                 {belt.name}
@@ -178,11 +178,11 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
        <div className="grid md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="graduationDate" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Data da Última Graduação</label>
-            <input id="graduationDate" type="date" value={last_graduation_date} onChange={(e) => setLastGraduationDate(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            <input id="graduationDate" type="date" value={last_graduation_date} onChange={(e) => setLastGraduationDate(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" />
           </div>
           <div>
             <label htmlFor="tuitionFee" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Valor da Mensalidade (R$)</label>
-            <input id="tuitionFee" type="number" value={tuition_fee} onChange={(e) => setTuitionFee(parseFloat(e.target.value))} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+            <input id="tuitionFee" type="number" value={tuition_fee} onChange={(e) => setTuitionFee(parseFloat(e.target.value))} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" />
           </div>
       </div>
 
@@ -210,7 +210,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
 
       <div className="flex justify-end gap-4 pt-4">
         <button type="button" onClick={onCancel} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold">Cancelar</button>
-        <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold">Salvar</button>
+        <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold">Salvar</button>
       </div>
     </form>
   );

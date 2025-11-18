@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 import SpinnerIcon from './icons/SpinnerIcon';
@@ -11,7 +12,7 @@ interface AuthProps {
 const InputField: React.FC<{label: string; id: string; type: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean;}> = ({ label, ...props }) => (
     <div>
         <label htmlFor={props.id} className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-        <input className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" {...props} />
+        <input className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" {...props} />
     </div>
 );
 
@@ -175,8 +176,8 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                             <div>
                                 <label className="block mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de acesso</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button type="button" onClick={() => setUserType('master')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'master' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou da Academia</button>
-                                    <button type="button" onClick={() => setUserType('student')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'student' ? 'bg-red-600 text-white border-red-400' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou Aluno</button>
+                                    <button type="button" onClick={() => setUserType('master')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'master' ? 'bg-red-600 text-white border-red-600' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou da Academia</button>
+                                    <button type="button" onClick={() => setUserType('student')} className={`p-3 text-sm rounded-lg border-2 font-semibold ${userType === 'student' ? 'bg-red-600 text-white border-red-600' : 'bg-gray-200 dark:bg-gray-700'}`}>Sou Aluno</button>
                                 </div>
                             </div>
                             <InputField label="Nome Completo" id="name" type="text" value={name} onChange={e => setName(e.target.value)} required />
@@ -226,14 +227,14 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                     {error && <p className="text-red-500 dark:text-red-400 text-sm text-center">{error}</p>}
                     {message && <p className="text-green-500 dark:text-green-400 text-sm text-center">{message}</p>}
 
-                    <button type="submit" disabled={loading} className="w-full text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-red-400 dark:focus:ring-amber-500 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300 disabled:opacity-50 flex justify-center items-center">
+                    <button type="submit" disabled={loading} className="w-full text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-400 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300 disabled:opacity-50 flex justify-center items-center">
                         {loading ? <SpinnerIcon className="w-6 h-6" /> : (isLogin ? 'Entrar' : 'Registrar')}
                     </button>
                 </form>
 
                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-6">
                     {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
-                    <button onClick={() => {setIsLogin(!isLogin); setError(''); setMessage('')}} className="font-medium text-red-600 dark:text-amber-400 hover:underline ml-2">
+                    <button onClick={() => {setIsLogin(!isLogin); setError(''); setMessage('')}} className="font-medium text-red-600 dark:text-red-400 hover:underline ml-2">
                         {isLogin ? 'Cadastre-se' : 'Faça login'}
                     </button>
                 </p>

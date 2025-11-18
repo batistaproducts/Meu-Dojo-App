@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink, StudentRequest, UserRole } from './types';
+import { User, Dojo, Student, Exam, GraduationEvent, StudentGrading, DojoCreationData, Fight, GraduationHistoryEntry, MartialArt, Championship, ChampionshipResult, StudentUserLink, StudentRequest, UserRole, Product } from './types';
 import { AppView, getPermissionsForRole } from './services/roleService';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
@@ -15,6 +16,7 @@ import PublicDojoPage from './components/dojo/PublicDojoPage';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import StudentDashboard from './components/student/StudentDashboard';
 import ChampionshipManager from './components/championships/ChampionshipManager';
+import StoreView from './components/store/StoreView';
 
 // --- Public Page Loader Components ---
 
@@ -214,6 +216,7 @@ const AuthenticatedApp: React.FC = () => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [graduationEvents, setGraduationEvents] = useState<GraduationEvent[]>([]);
   const [championships, setChampionships] = useState<Championship[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [studentUserLinks, setStudentUserLinks] = useState<StudentUserLink[]>([]);
   const [studentRequests, setStudentRequests] = useState<StudentRequest[]>([]);
 
@@ -239,6 +242,7 @@ const AuthenticatedApp: React.FC = () => {
         setExams([]);
         setGraduationEvents([]);
         setChampionships([]);
+        setProducts([]);
         setStudentUserLinks([]);
         setStudentRequests([]);
         setScheduledGraduationEvent(null);
@@ -263,16 +267,31 @@ const AuthenticatedApp: React.FC = () => {
     
     if (dojoData) {
         setDojo(dojoData);
-        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes] = await Promise.all([
+        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes, productsRes] = await Promise.all([
           supabase.from('students').select('*').eq('dojo_id', dojoData.id),
           supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
           supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id),
           supabase.from('championships').select('*').eq('dojo_id', dojoData.id),
           supabase.from('student_requests').select('*').eq('dojo_id', dojoData.id).eq('status', 'pending'),
-          supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A')
+          supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A'),
+          supabase.from('products').select('*').eq('dojo_id', dojoData.id)
         ]);
-        const firstError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
-        if (firstError) throw firstError;
+        
+        // Check for critical errors in core tables
+        const criticalError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
+        if (criticalError) throw criticalError;
+
+        // Check for non-critical errors (products)
+        if (productsRes.error) {
+            const isIgnorable = productsRes.error.code === '42P01' || 
+                                (productsRes.error.message && productsRes.error.message.includes('Could not find the table')) ||
+                                (productsRes.error.message && productsRes.error.message.includes('does not exist'));
+            
+            if (!isIgnorable) {
+                throw productsRes.error;
+            }
+            // If ignorable, we just have empty products, which is handled by empty array fallback
+        }
 
         setStudents(studentsRes.data || []);
         setExams(examsRes.data || []);
@@ -280,6 +299,7 @@ const AuthenticatedApp: React.FC = () => {
         setChampionships(championshipsRes.data || []);
         setStudentRequests(requestsRes.data || []);
         setStudentUserLinks(linksRes.data || []);
+        setProducts(productsRes.data || []);
     } else {
         setDojo(null);
     }
@@ -334,10 +354,6 @@ const AuthenticatedApp: React.FC = () => {
                         .eq('status', 'scheduled')
                         .limit(1)
                         .maybeSingle();
-                    
-                    if (eventError) {
-                        console.error("Error fetching scheduled event:", eventError.message);
-                    }
                     
                     if (eventData) {
                         setScheduledGraduationEvent(eventData);
@@ -704,6 +720,36 @@ const AuthenticatedApp: React.FC = () => {
       }
   };
 
+  const handleAddProduct = async (productData: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => {
+      if(!dojo) return;
+      const { data, error } = await supabase
+          .from('products')
+          .insert({ ...productData, dojo_id: dojo.id })
+          .select()
+          .single();
+      
+      if(error) throw error;
+      setProducts(prev => [...prev, data]);
+  };
+
+  const handleEditProduct = async (product: Product) => {
+      const { data, error } = await supabase
+          .from('products')
+          .update({ name: product.name, description: product.description, price: product.price, affiliate_url: product.affiliate_url, image_url: product.image_url })
+          .eq('id', product.id)
+          .select()
+          .single();
+
+      if(error) throw error;
+      setProducts(prev => prev.map(p => p.id === data.id ? data : p));
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+      const { error } = await supabase.from('products').delete().eq('id', productId);
+      if(error) throw error;
+      setProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
 
   // --- UI Handlers ---
   const handleNavigate = (newView: AppView) => {
@@ -745,7 +791,7 @@ const AuthenticatedApp: React.FC = () => {
     
     switch(view) {
       case 'dojo_manager':
-        return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} studentRequests={studentRequests} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} onApproveRequest={handleApproveStudentRequest} onRejectRequest={handleRejectStudentRequest} />;
+        return <DojoManager dojo={dojo!} students={students} exams={exams} studentUserLinks={studentUserLinks} studentRequests={studentRequests} products={products} onSaveStudent={handleSaveStudent} onScheduleGraduation={handleScheduleGraduation} onSaveSettings={handleSaveSettings} onViewPublicProfile={handleViewPublicProfile} onAddFight={handleAddFight} onUnlinkStudent={handleUnlinkStudent} onNavigateToDiplomaGenerator={handleNavigateToDiplomaGenerator} onApproveRequest={handleApproveStudentRequest} onRejectRequest={handleRejectStudentRequest} onAddProduct={handleAddProduct} onEditProduct={handleEditProduct} onDeleteProduct={handleDeleteProduct} />;
       case 'exams':
         return <ExamCreator exams={exams} modalities={dojo?.modalities || []} onSaveExam={handleSaveExam} onDeleteExam={handleDeleteExam} />;
       case 'grading':
@@ -756,6 +802,14 @@ const AuthenticatedApp: React.FC = () => {
         return <PublicDojoPage dojo={dojo!} students={students} onViewPublicProfile={handleViewPublicProfile} isOwnerPreview={true} />;
       case 'diploma_generator':
         return <DiplomaGenerator students={studentsForDiploma} dojo={dojo!} onBack={() => setView('dojo_manager')} user={currentUser!} />;
+      case 'admin_store':
+        return <StoreView 
+            products={products} 
+            isAdmin={true}
+            onAddProduct={handleAddProduct}
+            onEditProduct={handleEditProduct}
+            onDeleteProduct={handleDeleteProduct}
+        />;
       case 'sysadmin_panel':
         return userRole === 'S' ? <div><h1>Painel SysAdmin</h1><p>Funcionalidade a ser implementada.</p></div> : <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
       case 'dashboard':

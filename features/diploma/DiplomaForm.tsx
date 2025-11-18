@@ -15,7 +15,7 @@ interface DiplomaFormProps {
 const InputField: React.FC<{label: string; id: string; type?: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; required?: boolean; disabled?: boolean;}> = ({ label, id, ...props }) => (
     <div>
       <label htmlFor={id} className="block mb-2 text-sm font-medium text-gray-600 dark:text-gray-300">{label}</label>
-      <input id={id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" {...props} />
+      <input id={id} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5 disabled:opacity-50 disabled:cursor-not-allowed" {...props} />
     </div>
   );
 
@@ -76,7 +76,7 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ students, martialArt, dojo, u
   return (
     <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl animate-fade-in">
         <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">Gerar Diploma de {martialArt.name}</h2>
+            <h2 className="text-3xl font-bold font-cinzel text-gray-900 dark:text-white">Gerar Diploma de {martialArt.name}</h2>
             <button onClick={onBack} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">&larr; Voltar</button>
         </div>
       
@@ -98,7 +98,7 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ students, martialArt, dojo, u
                 type="button"
                 key={belt.name}
                 onClick={() => students.length === 0 && setSelectedBelt(belt)}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt.name === belt.name && students.length <= 1 ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-amber-400 ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'} ${students.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt.name === belt.name && students.length <= 1 ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-white ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'} ${students.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                 style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF', textShadow: '1px 1px 2px rgba(0,0,0,0.4)' }}
               >
                 {belt.name}
@@ -140,7 +140,7 @@ const DiplomaForm: React.FC<DiplomaFormProps> = ({ students, martialArt, dojo, u
             </div>
         </div>
         
-        <button type="submit" className="w-full text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 focus:ring-4 focus:outline-none focus:ring-red-400 dark:focus:ring-amber-500 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300">
+        <button type="submit" className="w-full text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-400 font-bold rounded-lg text-lg px-5 py-3 text-center transition-colors duration-300">
           Gerar Diplomas
         </button>
       </form>

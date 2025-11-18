@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { GraduationEvent, Exam, Student, StudentGrading } from '../../types';
 
@@ -79,7 +80,7 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
 
     return (
         <div className="animate-fade-in">
-            <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-8">Gerenciar Graduações</h2>
+            <h2 className="text-3xl font-bold font-cinzel text-gray-900 dark:text-white mb-8">Gerenciar Graduações</h2>
             
             {!selectedEvent && (
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -145,7 +146,7 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
                     </div>
                     
                     <div className="mt-8 flex justify-end">
-                        <button onClick={handleFinalizeGradingWrapper} className="px-6 py-3 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-bold rounded-lg transition-colors">
+                        <button onClick={handleFinalizeGradingWrapper} className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
                             Finalizar e Salvar Graduação
                         </button>
                     </div>

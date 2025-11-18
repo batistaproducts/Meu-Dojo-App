@@ -45,18 +45,18 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
         {dojo.logo_url && (
             <img src={dojo.logo_url} alt={`${dojo.name} Logo`} className="mx-auto h-24 w-auto mb-4 object-contain" />
         )}
-        <h1 className="text-4xl md:text-5xl font-bold font-cinzel text-red-800 dark:text-amber-300">{dojo.name}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold font-cinzel text-gray-900 dark:text-white">{dojo.name}</h1>
         <h2 className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 font-semibold">{dojo.team_name}</h2>
         
         <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 mt-6">
             {dojo.phone && (
-                <a href={`tel:${dojo.phone}`} className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-amber-400 transition-colors">
+                <a href={`tel:${dojo.phone}`} className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-500 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                     <span>{dojo.phone}</span>
                 </a>
             )}
             {dojo.instagram_handle && (
-                <a href={`https://instagram.com/${dojo.instagram_handle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-amber-400 transition-colors">
+                <a href={`https://instagram.com/${dojo.instagram_handle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-red-700 dark:hover:text-red-500 transition-colors">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.2 2H9.8C5.4 2 2 5.4 2 9.8v4.4C2 18.6 5.4 22 9.8 22h4.4c4.4 0 7.8-3.4 7.8-7.8V9.8C22 5.4 18.6 2 14.2 2z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15.6a3.6 3.6 0 100-7.2 3.6 3.6 0 000 7.2z" />
@@ -71,7 +71,7 @@ const PublicDojoPage: React.FC<PublicDojoPageProps> = ({ dojo, students, onViewP
       <div className="space-y-12">
         {groupedStudents.map(({ modality, students: modalityStudents }) => (
           <section key={modality.name}>
-            <h3 className="text-3xl font-bold font-cinzel text-center mb-8 text-red-800 dark:text-amber-300">{modality.name}</h3>
+            <h3 className="text-3xl font-bold font-cinzel text-center mb-8 text-gray-900 dark:text-white">{modality.name}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {modalityStudents.map(student => (
                 <div 

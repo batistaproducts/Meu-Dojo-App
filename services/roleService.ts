@@ -1,3 +1,4 @@
+
 import { UserRole } from "../types";
 import { supabase } from "./supabaseClient";
 
@@ -11,6 +12,7 @@ export type AppView =
     | 'diploma_generator' 
     | 'championships' 
     | 'student_dashboard' 
+    | 'admin_store'
     | 'sysadmin_panel';
 
 /**

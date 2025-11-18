@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Student, Dojo, Fight } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -17,7 +18,7 @@ interface StudentProfileProps {
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg h-full">
-        <h3 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">{title}</h3>
+        <h3 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">{title}</h3>
         {children}
     </div>
 );
@@ -67,7 +68,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
         )}
         <div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white">{student.name}</h2>
-            <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
+            <p className="text-xl text-red-700 dark:text-red-500 font-semibold">{student.modality}</p>
             <p className="text-gray-600 dark:text-gray-400">Membro da {dojo.name} / {dojo.team_name}</p>
         </div>
       </header>
@@ -111,7 +112,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
                                     <p className="font-semibold text-gray-900 dark:text-white">{champ.name}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(champ.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                                 </div>
-                                <span className="font-bold text-red-700 dark:text-amber-400">{champ.result}</span>
+                                <span className="font-bold text-red-700 dark:text-red-500">{champ.result}</span>
                             </li>
                         ))}
                     </ul>
@@ -136,7 +137,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ student, dojo, onBack, 
                     </div>
                  </div>
                  <div className="mt-6 text-center">
-                    <button onClick={() => setIsFightModalOpen(true)} className="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white text-sm rounded-lg transition-colors font-semibold">
+                    <button onClick={() => setIsFightModalOpen(true)} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors font-semibold">
                         Adicionar Luta
                     </button>
                  </div>

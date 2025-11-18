@@ -1,3 +1,4 @@
+
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface Belt {
@@ -54,7 +55,7 @@ export interface GraduationHistoryEntry {
 
 export interface Student {
   id?: string;
-  dojo_id: string;
+  dojo_id: string | null;
   email: string;
   name:string;
   modality: string;
@@ -114,6 +115,17 @@ export interface Championship {
   dojo_id: string;
   name: string;
   date: string;
+}
+
+export interface Product {
+  id?: string;
+  dojo_id: string;
+  name: string;
+  description: string;
+  price: number;
+  image_url?: string;
+  affiliate_url: string;
+  created_at?: string;
 }
 
 

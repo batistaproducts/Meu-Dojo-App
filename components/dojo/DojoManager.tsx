@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest } from '../../types';
+import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest, Product } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
@@ -12,6 +13,7 @@ import SpinnerIcon from '../icons/SpinnerIcon';
 import CertificateIcon from '../icons/CertificateIcon';
 import GlobeIcon from '../icons/GlobeIcon';
 import PublicStudentProfile from '../student/PublicStudentProfile';
+import StoreView from '../store/StoreView';
 
 interface DojoManagerProps {
   dojo: Dojo;
@@ -19,6 +21,7 @@ interface DojoManagerProps {
   exams: Exam[];
   studentUserLinks: StudentUserLink[];
   studentRequests: StudentRequest[];
+  products: Product[];
   onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
   onSaveSettings: (updates: Partial<Dojo>) => Promise<void>;
@@ -28,11 +31,14 @@ interface DojoManagerProps {
   onNavigateToDiplomaGenerator: (students: Student[]) => void;
   onApproveRequest: (request: StudentRequest) => Promise<void>;
   onRejectRequest: (requestId: string) => Promise<void>;
+  onAddProduct: (product: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => Promise<void>;
+  onEditProduct: (product: Product) => Promise<void>;
+  onDeleteProduct: (productId: string) => Promise<void>;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studentUserLinks, studentRequests, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator, onApproveRequest, onRejectRequest }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studentUserLinks, studentRequests, products, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator, onApproveRequest, onRejectRequest, onAddProduct, onEditProduct, onDeleteProduct }) => {
   const [view, setView] = useState<'list' | 'profile' | 'public_profile'>('list');
-  const [activeTab, setActiveTab] = useState<'students' | 'requests'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'requests' | 'store'>('students');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGraduationModalOpen, setIsGraduationModalOpen] = useState(false);
@@ -178,7 +184,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
         <div>
-            <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">{dojo.name}</h2>
+            <h2 className="text-3xl font-bold font-cinzel text-gray-900 dark:text-white">{dojo.name}</h2>
             <p className="text-gray-600 dark:text-gray-400">Equipe: {dojo.team_name}</p>
         </div>
         <div className="flex gap-2 sm:gap-4 flex-wrap">
@@ -206,13 +212,15 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                 </button>
                 </>
             )}
+            {activeTab === 'students' && (
             <button
-            onClick={() => handleOpenForm(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold text-sm"
-            >
-            <PlusIcon className="w-5 h-5" />
-            Adicionar Aluno
+                onClick={() => handleOpenForm(null)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold text-sm"
+                >
+                <PlusIcon className="w-5 h-5" />
+                Adicionar Aluno
             </button>
+            )}
         </div>
       </div>
       
@@ -220,16 +228,22 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
                 onClick={() => setActiveTab('students')}
-                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'students' ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'students' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
             >
                 Alunos ({students.length})
             </button>
             <button
                 onClick={() => setActiveTab('requests')}
-                className={`relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'requests' ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
+                className={`relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'requests' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
             >
                 Solicitações
-                {studentRequests.length > 0 && <span className="absolute top-3 -right-3.5 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{studentRequests.length}</span>}
+                {studentRequests.length > 0 && <span className="absolute top-3 -right-3.5 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">{studentRequests.length}</span>}
+            </button>
+             <button
+                onClick={() => setActiveTab('store')}
+                className={`relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'store' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
+            >
+                Loja do Dojo
             </button>
         </nav>
       </div>
@@ -273,7 +287,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                         <td className="px-6 py-4">{new Date(student.last_graduation_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                         <td className="px-6 py-4 text-right flex justify-end items-center gap-4">
                         <button onClick={() => handleViewProfile(student)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline" title="Ver Perfil"><UserIcon className="w-5 h-5"/></button>
-                        <button onClick={() => handleOpenForm(student)} className="font-medium text-yellow-600 dark:text-amber-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
+                        <button onClick={() => handleOpenForm(student)} className="font-medium text-yellow-600 dark:text-yellow-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
                         <button onClick={() => setStudentToUnlink(student)} className="font-medium text-red-600 dark:text-red-500 hover:underline" title="Desvincular Aluno"><TrashIcon className="w-5 h-5"/></button>
                         </td>
                     </tr>
@@ -322,6 +336,16 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
         </div>
       )}
 
+      {activeTab === 'store' && (
+          <StoreView 
+            products={products} 
+            isAdmin={true}
+            onAddProduct={onAddProduct}
+            onEditProduct={onEditProduct}
+            onDeleteProduct={onDeleteProduct}
+          />
+      )}
+
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -358,7 +382,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md relative">
                 <div className="p-6 sm:p-8">
-                    <h3 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Confirmar Ação</h3>
+                    <h3 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4">Confirmar Ação</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6" dangerouslySetInnerHTML={{ __html: `Tem certeza que deseja desvincular <strong>${studentToUnlink.name}</strong> do seu dojo? <br/>O aluno não será excluído permanentemente, mas não aparecerá mais na sua lista.` }} />
                     <div className="flex justify-end gap-4">
                         <button

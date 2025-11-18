@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Student, GraduationEvent, Exam } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
@@ -17,7 +18,7 @@ interface PublicStudentProfileProps {
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg h-full">
-        <h3 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">{title}</h3>
+        <h3 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">{title}</h3>
         {children}
     </div>
 );
@@ -61,7 +62,7 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         </div>
         <div>
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mt-2">{student.name}</h2>
-            <p className="text-xl text-red-700 dark:text-amber-400 font-semibold">{student.modality}</p>
+            <p className="text-xl text-red-700 dark:text-red-500 font-semibold">{student.modality}</p>
             <p className="text-gray-600 dark:text-gray-400">Membro da {dojoName || 'Dojo não especificado'} / {teamName || 'Equipe não especificada'}</p>
         </div>
       </header>
@@ -116,9 +117,12 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
         
         <div className="lg:col-span-2 space-y-8">
             {scheduledEvent && scheduledExam && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg shadow-lg border border-blue-200 dark:border-blue-800">
-                    <h3 className="text-xl font-bold font-cinzel text-blue-800 dark:text-blue-300 mb-4 border-b border-blue-200 dark:border-blue-700 pb-2">Próxima Graduação Agendada</h3>
-                    <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <div className="bg-gray-50 dark:bg-gray-700/30 p-6 rounded-lg shadow-lg border border-red-200 dark:border-red-900/30 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <span className="text-9xl font-serif text-red-600">覚</span>
+                    </div>
+                    <h3 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">Próxima Graduação Agendada</h3>
+                    <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300 relative z-10">
                         <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Data:</span> {new Date(scheduledEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                         <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Prova:</span> {scheduledExam.name}</p>
                         <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-28 inline-block">Faixa Alvo:</span> {scheduledExam.target_belt.name}</p>
@@ -144,7 +148,7 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
                                         <p className="font-semibold text-gray-900 dark:text-white">Promoção para Faixa {grad.belt.name}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(grad.date + 'T00:00:00').toLocaleDateString('pt-BR')} - {grad.examName}</p>
                                     </div>
-                                    <span className="font-bold text-lg text-blue-600 dark:text-blue-400">Nota: {grad.grade.toFixed(1)}</span>
+                                    <span className="font-bold text-lg text-gray-800 dark:text-gray-200">Nota: {grad.grade.toFixed(1)}</span>
                                 </li>
                             )
                         })}
@@ -163,7 +167,7 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
                                     <p className="font-semibold text-gray-900 dark:text-white">{champ.name}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(champ.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                                 </div>
-                                <span className="font-bold text-red-700 dark:text-amber-400">{champ.result}</span>
+                                <span className="font-bold text-red-700 dark:text-red-500">{champ.result}</span>
                             </li>
                         ))}
                     </ul>

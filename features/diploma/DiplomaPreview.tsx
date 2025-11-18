@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Student } from '../../types';
 import SpinnerIcon from '../../components/icons/SpinnerIcon';
@@ -59,8 +60,8 @@ const DiplomaPreview: React.FC<DiplomaPreviewProps> = ({ isLoading, error, resul
   if (isLoading) {
     return (
       <div className="text-center py-20 animate-fade-in">
-        <SpinnerIcon className="w-16 h-16 mx-auto text-red-700 dark:text-amber-400" />
-        <h2 className="text-2xl font-semibold mt-4">Gerando Diplomas...</h2>
+        <SpinnerIcon className="w-16 h-16 mx-auto text-red-700 dark:text-white" />
+        <h2 className="text-2xl font-semibold mt-4 text-gray-900 dark:text-white">Gerando Diplomas...</h2>
         <p className="text-gray-500 dark:text-gray-400">Aguarde, os certificados estão sendo criados.</p>
       </div>
     );
@@ -71,7 +72,7 @@ const DiplomaPreview: React.FC<DiplomaPreviewProps> = ({ isLoading, error, resul
       <div className="text-center py-20 animate-fade-in">
         <h2 className="text-2xl font-semibold text-red-600 dark:text-red-500">Ocorreu um Erro</h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
-        <button onClick={onReset} className="mt-6 px-6 py-2 text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-lg transition-colors">Tentar Novamente</button>
+        <button onClick={onReset} className="mt-6 px-6 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">Tentar Novamente</button>
       </div>
     );
   }
@@ -79,7 +80,7 @@ const DiplomaPreview: React.FC<DiplomaPreviewProps> = ({ isLoading, error, resul
   return (
     <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold font-cinzel text-red-800 dark:text-amber-300">Diplomas Gerados</h2>
+        <h2 className="text-3xl font-bold font-cinzel text-gray-900 dark:text-white">Diplomas Gerados</h2>
         <button onClick={onReset} className="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors">Gerar Outros</button>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

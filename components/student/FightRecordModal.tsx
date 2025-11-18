@@ -24,7 +24,7 @@ const FightRecordModal: React.FC<FightRecordModalProps> = ({ onClose, onSave }) 
                     <CloseIcon className="w-6 h-6" />
                 </button>
                 <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-                    <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">Adicionar Luta</h3>
+                    <h3 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white">Adicionar Luta</h3>
                     <div>
                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Resultado</label>
                         <div className="grid grid-cols-3 gap-2">
@@ -39,7 +39,7 @@ const FightRecordModal: React.FC<FightRecordModalProps> = ({ onClose, onSave }) 
                     </div>
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg font-semibold">Cancelar</button>
-                        <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg font-semibold">Salvar</button>
+                        <button type="submit" className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold">Salvar</button>
                     </div>
                 </form>
             </div>

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Student, Dojo, User, GraduationEvent, Exam, StudentRequest } from '../../types';
+import { Student, Dojo, User, GraduationEvent, Exam, StudentRequest, Product } from '../../types';
 import { supabase } from '../../services/supabaseClient';
 import Logo from '../icons/Logo';
 import PublicStudentProfile from './PublicStudentProfile';
@@ -9,6 +10,7 @@ import EditIcon from '../icons/EditIcon';
 import CloseIcon from '../icons/CloseIcon';
 import UploadIcon from '../icons/UploadIcon';
 import UserIcon from '../icons/UserIcon';
+import StoreView from '../store/StoreView';
 
 interface StudentDashboardProps {
     student: (Student & { dojos: Dojo | null }) | null;
@@ -60,7 +62,7 @@ const EditProfileModal: React.FC<{
                     <CloseIcon className="w-6 h-6" />
                 </button>
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300">Editar Perfil</h3>
+                    <h3 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white">Editar Perfil</h3>
                     
                     <div className="flex flex-col items-center gap-4">
                         <label htmlFor="profile-picture-upload-modal" className="cursor-pointer group relative">
@@ -80,12 +82,12 @@ const EditProfileModal: React.FC<{
 
                     <div>
                         <label htmlFor="studentName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome Completo</label>
-                        <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-amber-500 focus:border-red-500 dark:focus:border-amber-500 block w-full p-2.5" />
+                        <input id="studentName" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" />
                     </div>
                     
                     <div className="flex justify-end gap-4 pt-4">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold">Cancelar</button>
-                        <button type="submit" disabled={isSaving} className="px-6 py-2 bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center min-w-[100px]">
+                        <button type="submit" disabled={isSaving} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center min-w-[100px]">
                            {isSaving ? <SpinnerIcon className="w-5 h-5" /> : 'Salvar'}
                         </button>
                     </div>
@@ -98,8 +100,9 @@ const EditProfileModal: React.FC<{
 
 // --- Main Dashboard Component ---
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams' | 'store'>('profile');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [dojo, setDojo] = useState<Dojo | null>(student?.dojos || null);
     const [isLoading, setIsLoading] = useState(false);
     const [teamError, setTeamError] = useState<string | null>(null);
@@ -111,52 +114,80 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         setCurrentStudent(student);
         setDojo(student?.dojos || null);
     }, [student]);
-
-    useEffect(() => {
-        if (!currentStudent) return;
-        console.log('--- INFORMAÇÕES DE DEBUG DO ALUNO ---');
-        console.log('ID de Autenticação (user.id):', user.id);
-        console.log('ID do Aluno (student.id):', currentStudent.id);
-        console.log('ID do Dojo (student.dojo_id):', currentStudent.dojo_id);
-        console.log('------------------------------------');
-    }, [user, currentStudent]);
     
     useEffect(() => {
-        if (activeTab !== 'team' || !currentStudent) return;
+        if (activeTab === 'team' && currentStudent) {
+            loadTeamData();
+        }
+        if (activeTab === 'store' && currentStudent) {
+            loadStoreData();
+        }
+    }, [activeTab, currentStudent]);
 
-        const loadTeamData = async () => {
-            if (teamStudents.length > 0 && dojo) return;
+    const loadTeamData = async () => {
+        if (teamStudents.length > 0 && dojo) return;
 
-            setIsLoading(true);
-            setTeamError(null);
+        setIsLoading(true);
+        setTeamError(null);
 
-            try {
-                let currentDojo = dojo;
+        try {
+            let currentDojo = dojo;
 
-                if (!currentDojo) {
-                    if (!currentStudent.dojo_id) {
-                        throw new Error("Seu perfil não está vinculado a um dojo.");
-                    }
-                    const { data, error } = await supabase.from('dojos').select('*').eq('id', currentStudent.dojo_id).single();
-                    if (error) throw error;
-                    if (!data) throw new Error("Dojo associado não foi encontrado.");
-                    setDojo(data);
-                    currentDojo = data;
+            if (!currentDojo) {
+                if (!currentStudent?.dojo_id) {
+                    throw new Error("Seu perfil não está vinculado a um dojo.");
                 }
-
-                const { data: studentsData, error: studentsError } = await supabase.from('students').select('*').eq('dojo_id', currentDojo.id);
-                if (studentsError) throw studentsError;
-                setTeamStudents(studentsData || []);
-
-            } catch (err: any) {
-                setTeamError(err.message || "Não foi possível carregar os dados da equipe.");
-            } finally {
-                setIsLoading(false);
+                const { data, error } = await supabase.from('dojos').select('*').eq('id', currentStudent.dojo_id).single();
+                if (error) throw error;
+                if (!data) throw new Error("Dojo associado não foi encontrado.");
+                setDojo(data);
+                currentDojo = data;
             }
-        };
 
-        loadTeamData();
-    }, [activeTab, dojo, currentStudent, teamStudents.length]);
+            const { data: studentsData, error: studentsError } = await supabase.from('students').select('*').eq('dojo_id', currentDojo.id);
+            if (studentsError) throw studentsError;
+            setTeamStudents(studentsData || []);
+
+        } catch (err: any) {
+            setTeamError(err.message || "Não foi possível carregar os dados da equipe.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadStoreData = async () => {
+        if (products.length > 0) return;
+        if (!currentStudent?.dojo_id) return;
+        
+        setIsLoading(true);
+        try {
+             const { data, error } = await supabase.from('products').select('*').eq('dojo_id', currentStudent.dojo_id);
+             
+             if (error) {
+                 // Ignore missing table errors to prevent crashing if SQL script hasn't run yet
+                 const isIgnorable = error.code === '42P01' || 
+                                     (error.message && error.message.includes('Could not find the table')) ||
+                                     (error.message && error.message.includes('does not exist'));
+                                     
+                 if (isIgnorable) {
+                     console.warn("Products table not found, ignoring error.");
+                     setProducts([]);
+                     return;
+                 }
+                 throw error;
+             }
+             
+             setProducts(data || []);
+        } catch (err: any) {
+            const errorMessage = err.message || 'Unknown error';
+            console.error(`Failed to load store products: ${errorMessage}`);
+            // Don't crash the UI, just show empty list
+            setProducts([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -187,177 +218,124 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                 console.error("Supabase update error:", error);
                 throw error;
             }
-            
             setCurrentStudent(data);
         }
     };
 
-    const renderHeader = () => (
-         <header className="py-4 bg-white dark:bg-black/30 shadow-md sticky top-0 z-40">
-            <div className="container mx-auto px-4 flex justify-between items-center">
-                <div>
-                    <Logo className="h-10" />
-                </div>
-                <div className="flex items-center gap-4">
-                    <span className="text-sm hidden sm:inline">Olá, {user.user_metadata.name || currentStudent?.name}</span>
-                    <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-red-700 dark:text-amber-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        <span>Sair</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-    );
-    
-    if (!currentStudent) {
-        let title = "Aguardando Aprovação";
-        let message1 = "Sua solicitação para ingressar na academia foi enviada com sucesso.";
-        let message2 = "Assim que sua matrícula for aprovada pelo responsável, você terá acesso completo ao seu perfil e informações da equipe aqui.";
-        
-        if (studentRequest?.status === 'rejected') {
-            title = "Solicitação Recusada";
-            message1 = `Sua solicitação para ingressar na academia "${studentRequest.dojos?.name || 'desconhecida'}" foi recusada.`;
-            message2 = "Você pode tentar se registrar novamente ou entrar em contato com o responsável pela academia.";
-        }
-
-        return (
-            <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-                {renderHeader()}
-                <main className="container mx-auto px-4 py-8 text-center">
-                    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-lg animate-fade-in">
-                        <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">{title}</h2>
-                        <p className="text-gray-600 dark:text-gray-400">
-                           {message1}
-                        </p>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">
-                           {message2}
-                        </p>
-                    </div>
-                </main>
-            </div>
-        );
+    if (!currentStudent && !studentRequest) {
+        return <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex justify-center items-center"><SpinnerIcon className="w-16 h-16"/></div>;
     }
 
-
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'profile':
-                return (
-                    <div className="relative">
-                         <button 
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="absolute top-0 right-0 z-10 flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm rounded-lg transition-colors font-semibold"
-                        >
-                            <EditIcon className="w-4 h-4" />
-                            Editar Perfil
-                        </button>
-                        <PublicStudentProfile
-                            student={currentStudent}
-                            dojoName={dojo?.name}
-                            teamName={dojo?.team_name}
-                            teamLogoUrl={dojo?.team_logo_url}
-                            scheduledEvent={scheduledEvent}
-                            scheduledExam={scheduledExam}
-                        />
-                    </div>
-                );
-            case 'team':
-                if (isLoading) {
-                    return <div className="flex justify-center items-center py-20"><SpinnerIcon className="w-12 h-12" /></div>;
-                }
-
-                if (teamError) {
-                    return <div className="text-center py-20 text-red-500">{teamError}</div>;
-                }
-                
-                if (!dojo) {
-                    return <p className="text-center py-10 text-gray-500">Seu perfil não está vinculado a um dojo para visualizar a equipe.</p>;
-                }
-
-                return (
-                    <PublicDojoPage
-                        dojo={dojo}
-                        students={teamStudents}
-                        onViewPublicProfile={() => {}}
-                    />
-                );
-            case 'exams':
-                if (scheduledEvent && scheduledExam) {
-                    return (
-                        <div className="animate-fade-in max-w-4xl mx-auto">
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h3 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">Provas Agendadas</h3>
-                                <div className="space-y-4 text-lg text-gray-700 dark:text-gray-300">
-                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Data:</span> {new Date(scheduledEvent.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
-                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Prova:</span> {scheduledExam.name}</p>
-                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Faixa Alvo:</span> {scheduledExam.target_belt.name}</p>
-                                    <p><span className="font-semibold text-gray-500 dark:text-gray-400 w-32 inline-block">Nota Mínima:</span> {scheduledExam.min_passing_grade.toFixed(1)}</p>
-                                    <div className="pt-4">
-                                        <p className="font-semibold text-gray-500 dark:text-gray-400 mb-2">Conteúdo da Prova:</p>
-                                        <ul className="list-disc list-inside space-y-2 pl-4 text-gray-800 dark:text-gray-200">
-                                            {scheduledExam.exercises.map(ex => <li key={ex.id}>{ex.name}</li>)}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                    <div className="text-center py-20 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <p className="text-gray-500 dark:text-gray-400">Você não tem nenhuma prova de graduação agendada no momento.</p>
-                    </div>
-                );
-            default:
-                return null;
-        }
-    };
-
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
-            {renderHeader()}
-            <main className="container mx-auto px-4 py-8">
-                <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
-                    <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                        <button
-                            onClick={() => setActiveTab('profile')}
-                            className={`${
-                                activeTab === 'profile'
-                                ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
-                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}
-                        >
-                            Meu Perfil
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('team')}
-                            className={`${
-                                activeTab === 'team'
-                                ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
-                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}
-                        >
-                            Minha Equipe
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('exams')}
-                            className={`${
-                                activeTab === 'exams'
-                                ? 'border-red-500 dark:border-amber-400 text-red-600 dark:text-amber-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
-                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}
-                        >
-                            Provas
-                        </button>
-                    </nav>
+        <div className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen flex flex-col">
+            {/* Header */}
+            <header className="bg-white dark:bg-black/30 shadow-md sticky top-0 z-40">
+                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <Logo className="h-8 w-auto" />
+                    </div>
+                    <button onClick={handleLogout} className="text-sm text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 font-medium">
+                        Sair
+                    </button>
                 </div>
+            </header>
 
-                <div className="animate-fade-in">
-                    {renderContent()}
-                </div>
+            <main className="container mx-auto px-4 py-8 flex-grow">
+                 {/* Pending Request State */}
+                {studentRequest && !currentStudent ? (
+                    <div className="max-w-2xl mx-auto text-center mt-10 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Solicitação Enviada</h2>
+                        {studentRequest.status === 'rejected' ? (
+                            <div>
+                                <p className="text-red-500 mb-4">Sua solicitação para entrar no dojo <strong>{studentRequest.dojos?.name || 'Academia'}</strong> foi rejeitada.</p>
+                                <p className="text-gray-600 dark:text-gray-400">Entre em contato com o responsável ou tente se registrar novamente.</p>
+                            </div>
+                        ) : (
+                            <div>
+                                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                                    Você solicitou entrada na academia <strong>{studentRequest.dojos?.name || 'Academia'}</strong>.
+                                    <br/>Aguarde a aprovação do seu mestre para acessar seu perfil completo.
+                                </p>
+                                <SpinnerIcon className="w-12 h-12 mx-auto text-blue-500"/>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        {/* Dashboard Navigation */}
+                        <div className="mb-6 overflow-x-auto">
+                             <nav className="flex space-x-4 border-b border-gray-200 dark:border-gray-700 min-w-max">
+                                <button
+                                    onClick={() => setActiveTab('profile')}
+                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'profile' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                >
+                                    Meu Perfil
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('team')}
+                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'team' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                >
+                                    Minha Equipe
+                                </button>
+                                 <button
+                                    onClick={() => setActiveTab('store')}
+                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'store' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                >
+                                    Loja
+                                </button>
+                             </nav>
+                        </div>
+
+                        {/* Content Area */}
+                        {activeTab === 'profile' && currentStudent && (
+                            <div>
+                                <div className="flex justify-end mb-4">
+                                    <button 
+                                        onClick={() => setIsEditModalOpen(true)} 
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm font-semibold transition-colors"
+                                    >
+                                        <EditIcon className="w-4 h-4"/>
+                                        Editar Perfil
+                                    </button>
+                                </div>
+                                <PublicStudentProfile 
+                                    student={currentStudent} 
+                                    dojoName={dojo?.name}
+                                    teamName={dojo?.team_name}
+                                    teamLogoUrl={dojo?.team_logo_url}
+                                    scheduledEvent={scheduledEvent}
+                                    scheduledExam={scheduledExam}
+                                />
+                            </div>
+                        )}
+
+                        {activeTab === 'team' && dojo && (
+                            <div>
+                                {isLoading ? (
+                                    <div className="flex justify-center py-12"><SpinnerIcon className="w-10 h-10"/></div>
+                                ) : teamError ? (
+                                    <p className="text-center text-red-500 py-12">{teamError}</p>
+                                ) : (
+                                    <PublicDojoPage dojo={dojo} students={teamStudents} onViewPublicProfile={() => {}} />
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'store' && (
+                             <div>
+                                {isLoading ? (
+                                    <div className="flex justify-center py-12"><SpinnerIcon className="w-10 h-10"/></div>
+                                ) : (
+                                    <StoreView products={products} isAdmin={false} />
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
             </main>
+
             {isEditModalOpen && currentStudent && (
-                <EditProfileModal
+                <EditProfileModal 
                     student={currentStudent}
                     onClose={() => setIsEditModalOpen(false)}
                     onSave={handleSaveProfile}

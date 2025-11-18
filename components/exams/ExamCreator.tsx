@@ -69,7 +69,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam
       {/* Form Column */}
       <div className="md:col-span-1">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-6">Criar Nova Prova</h2>
+          <h2 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white mb-6">Criar Nova Prova</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="art" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Arte Marcial</label>
@@ -82,7 +82,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam
               <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Graduação Alvo</label>
               <div className="flex flex-wrap gap-2">
                 {selectedArt?.belts.map(belt => (
-                  <button type="button" key={belt.name} onClick={() => setTargetBelt(belt)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${targetBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-amber-400 ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`} style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF' }}>
+                  <button type="button" key={belt.name} onClick={() => setTargetBelt(belt)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${targetBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-white ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`} style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF' }}>
                     {belt.name}
                   </button>
                 ))}
@@ -103,7 +103,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Exercícios da Prova</label>
                 <div className="flex gap-2">
                     <input type="text" value={currentExercise} onChange={e => setCurrentExercise(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddExercise())} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg block w-full p-2.5" placeholder="Nome do exercício" />
-                    <button type="button" onClick={handleAddExercise} className="p-2.5 bg-red-600 dark:bg-amber-600 text-white rounded-lg"><PlusIcon className="w-5 h-5"/></button>
+                    <button type="button" onClick={handleAddExercise} className="p-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg"><PlusIcon className="w-5 h-5"/></button>
                 </div>
                 <ul className="mt-3 space-y-2">
                     {exercises.map(ex => (
@@ -115,7 +115,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam
                 </ul>
             </div>
             
-            <button type="submit" className="w-full text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 font-bold rounded-lg text-md px-5 py-3 text-center transition-colors">Salvar Prova</button>
+            <button type="submit" className="w-full text-white bg-red-600 hover:bg-red-700 font-bold rounded-lg text-md px-5 py-3 text-center transition-colors">Salvar Prova</button>
           </form>
         </div>
       </div>
@@ -123,7 +123,7 @@ const ExamCreator: React.FC<ExamCreatorProps> = ({ exams, modalities, onSaveExam
       {/* List Column */}
       <div className="md:col-span-2">
          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-6">Provas Cadastradas</h2>
+            <h2 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white mb-6">Provas Cadastradas</h2>
             {exams.length > 0 ? (
                 <div className="space-y-4">
                     {exams.map(exam => (

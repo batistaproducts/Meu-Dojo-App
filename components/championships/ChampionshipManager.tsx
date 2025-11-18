@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Championship, Student } from '../../types';
 import AddParticipantModal from './AddParticipantModal';
@@ -58,7 +59,7 @@ const ChampionshipManager: React.FC<ChampionshipManagerProps> = ({ championships
       {/* Left Column: List and Create Form */}
       <div className="md:col-span-1 flex flex-col gap-6">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Novo Campeonato</h2>
+          <h2 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4">Novo Campeonato</h2>
           <form onSubmit={handleCreateChampionship} className="space-y-4">
             <div>
               <label htmlFor="champName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Evento</label>
@@ -68,7 +69,7 @@ const ChampionshipManager: React.FC<ChampionshipManagerProps> = ({ championships
               <label htmlFor="champDate" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Data</label>
               <input id="champDate" type="date" value={date} onChange={e => setDate(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-lg block w-full p-2.5" />
             </div>
-            <button type="submit" className="w-full flex items-center justify-center gap-2 text-white bg-red-600 hover:bg-red-700 dark:bg-amber-600 dark:hover:bg-amber-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
+            <button type="submit" className="w-full flex items-center justify-center gap-2 text-white bg-red-600 hover:bg-red-700 font-bold rounded-lg text-md px-5 py-2.5 text-center transition-colors">
                 <PlusIcon className="w-5 h-5" />
                 Criar
             </button>
@@ -76,10 +77,10 @@ const ChampionshipManager: React.FC<ChampionshipManagerProps> = ({ championships
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-          <h2 className="text-xl font-bold font-cinzel text-red-800 dark:text-amber-300 mb-4">Eventos Cadastrados</h2>
+          <h2 className="text-xl font-bold font-cinzel text-gray-900 dark:text-white mb-4">Eventos Cadastrados</h2>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {sortedChampionships.map(champ => (
-              <div key={champ.id} onClick={() => handleSelectChampionship(champ)} className={`p-3 rounded-md cursor-pointer transition-colors border-2 ${selectedChampionship?.id === champ.id ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-amber-500' : 'bg-gray-100 dark:bg-gray-700/50 border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              <div key={champ.id} onClick={() => handleSelectChampionship(champ)} className={`p-3 rounded-md cursor-pointer transition-colors border-2 ${selectedChampionship?.id === champ.id ? 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-500' : 'bg-gray-100 dark:bg-gray-700/50 border-transparent hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 <p className="font-semibold text-gray-900 dark:text-white">{champ.name}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(champ.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
               </div>
@@ -112,7 +113,7 @@ const ChampionshipManager: React.FC<ChampionshipManagerProps> = ({ championships
                     <p className="text-sm text-gray-500 dark:text-gray-400">{p.modality}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="font-bold text-red-700 dark:text-amber-400">{p.result}</span>
+                    <span className="font-bold text-red-700 dark:text-red-500">{p.result}</span>
                     <button onClick={() => onRemoveParticipation(selectedChampionship.id!, p.id!)} className="text-gray-400 hover:text-red-500"><TrashIcon className="w-4 h-4"/></button>
                   </div>
                 </div>
