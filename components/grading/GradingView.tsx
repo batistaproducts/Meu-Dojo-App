@@ -53,7 +53,7 @@ const GradingView: React.FC<GradingViewProps> = ({ events, exams, students, onFi
                 }
                 groups[groupId].rows.push(eventRow);
             });
-        return Object.values(groups);
+        return Object.entries(groups).map(([id, data]) => ({ id, ...data }));
     }, [events, exams]);
 
     const selectedEvent = useMemo(() => groupedEvents.find(e => e.id === selectedEventId), [selectedEventId, groupedEvents]);
