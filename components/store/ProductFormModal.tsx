@@ -16,6 +16,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState<string>('');
     const [affiliateUrl, setAffiliateUrl] = useState('');
+    const [market, setMarket] = useState('');
     const [status, setStatus] = useState(true);
     const [imageBase64, setImageBase64] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             setDescription(product.description);
             setPrice(product.price.toString());
             setAffiliateUrl(product.affiliate_url);
+            setMarket(product.market || '');
             setStatus(product.status ?? true);
             setImageBase64(product.image_url || null);
         }
@@ -57,6 +59,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                 description,
                 price: parseFloat(price.replace(',', '.')),
                 affiliate_url: affiliateUrl,
+                market,
                 status,
                 image_url: imageBase64 || undefined
             });
@@ -71,12 +74,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
 
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 z-10 bg-white dark:bg-gray-800 rounded-full p-1">
                     <CloseIcon className="w-6 h-6" />
                 </button>
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <h3 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white">
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+                    <h3 className="text-2xl font-bold font-cinzel text-gray-900 dark:text-white pr-8">
                         {product ? 'Editar Produto' : 'Adicionar Produto'}
                     </h3>
 
@@ -106,9 +109,14 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                             <input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5" placeholder="0.00" />
                         </div>
                         <div>
-                            <label htmlFor="affiliate" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Link de Venda</label>
-                            <input id="affiliate" type="url" value={affiliateUrl} onChange={e => setAffiliateUrl(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5" placeholder="https://..." />
+                             <label htmlFor="market" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Loja (Tag)</label>
+                             <input id="market" type="text" value={market} onChange={e => setMarket(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5" placeholder="Ex: Amazon, Shopee" />
                         </div>
+                    </div>
+                    
+                    <div>
+                        <label htmlFor="affiliate" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Link de Venda</label>
+                        <input id="affiliate" type="url" value={affiliateUrl} onChange={e => setAffiliateUrl(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5" placeholder="https://..." />
                     </div>
 
                     <div>
@@ -127,7 +135,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                         <label htmlFor="status" className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Produto Ativo (Visível para alunos)</label>
                     </div>
 
-                    <div className="flex justify-end gap-4 pt-4">
+                    <div className="flex justify-end gap-4 pt-4 sticky bottom-0 bg-white dark:bg-gray-800 pb-2 border-t border-gray-100 dark:border-gray-700">
                         <button type="button" onClick={onClose} className="px-6 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-white rounded-lg transition-colors font-semibold">Cancelar</button>
                         <button type="submit" disabled={loading} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold disabled:opacity-50 flex items-center justify-center min-w-[100px]">
                             {loading ? <SpinnerIcon className="w-5 h-5" /> : 'Salvar'}

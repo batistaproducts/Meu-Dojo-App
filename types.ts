@@ -126,6 +126,7 @@ export interface Product {
   image_url?: string;
   affiliate_url: string;
   status: boolean;
+  market?: string;
   created_at?: string;
 }
 

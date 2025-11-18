@@ -23,7 +23,8 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
     const filteredProducts = useMemo(() => {
         let result = products.filter(p => 
             p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            p.description.toLowerCase().includes(searchTerm.toLowerCase())
+            p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.market && p.market.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
         return result.sort((a, b) => {
@@ -115,6 +116,13 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                                     )}
                                 </div>
                                 <div className="p-5 flex flex-col flex-grow">
+                                    {product.market && (
+                                        <div className="mb-1">
+                                            <span className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border border-gray-200 dark:border-gray-600">
+                                                {product.market}
+                                            </span>
+                                        </div>
+                                    )}
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-grow line-clamp-3">{product.description}</p>
                                     <div className="flex justify-between items-end mt-auto">

@@ -735,10 +735,13 @@ const AuthenticatedApp: React.FC = () => {
 
   const handleAddProduct = async (productData: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => {
       let dojoId = null;
-      if (dojo) {
+      
+      // If we are in the admin_store view, we force dojo_id to be null to create a global product.
+      // Otherwise, if a dojo is loaded, we use its ID.
+      if (view !== 'admin_store' && dojo) {
         dojoId = dojo.id;
       } 
-      // If no dojo is loaded (e.g. SysAdmin global mode), dojoId stays null, creating a global product.
+      // If in admin_store view or no dojo loaded, dojoId remains null.
 
       const { data, error } = await supabase
           .from('products')
@@ -759,7 +762,8 @@ const AuthenticatedApp: React.FC = () => {
               price: product.price, 
               affiliate_url: product.affiliate_url, 
               image_url: product.image_url,
-              status: product.status 
+              status: product.status,
+              market: product.market 
           })
           .eq('id', product.id)
           .select()
