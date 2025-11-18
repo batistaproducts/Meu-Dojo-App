@@ -26,6 +26,9 @@ const DiplomaGenerator: React.FC<DiplomaGeneratorProps> = ({ students, dojo, use
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Check if the current user is a student based on metadata
+  const isStudentUser = user.user_metadata.user_role === 'student';
+
   useEffect(() => {
     if (students.length > 0) {
       const studentArt = MARTIAL_ARTS.find(art => art.name === students[0].modality);
@@ -86,6 +89,7 @@ const DiplomaGenerator: React.FC<DiplomaGeneratorProps> = ({ students, dojo, use
                     user={user}
                     onSubmit={handleFormSubmit} 
                     onBack={onBack} 
+                    isReadOnly={isStudentUser}
                 />;
 
       case 'preview':

@@ -4,6 +4,7 @@ import { Student, GraduationEvent, Exam } from '../../types';
 import ChevronLeftIcon from '../icons/ChevronLeftIcon';
 import UserIcon from '../icons/UserIcon';
 import ChevronDownIcon from '../icons/ChevronDownIcon';
+import CertificateIcon from '../icons/CertificateIcon';
 
 interface PublicStudentProfileProps {
   student: Student;
@@ -14,6 +15,7 @@ interface PublicStudentProfileProps {
   backButtonText?: string;
   scheduledEvent?: GraduationEvent | null;
   scheduledExam?: Exam | null;
+  onNavigateToDiplomaGenerator?: (student: Student) => void;
 }
 
 const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title, children }) => (
@@ -23,7 +25,7 @@ const InfoCard: React.FC<{title: string, children: React.ReactNode}> = ({ title,
     </div>
 );
 
-const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack, backButtonText, scheduledEvent, scheduledExam }) => {
+const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, dojoName, teamName, teamLogoUrl, onBack, backButtonText, scheduledEvent, scheduledExam, onNavigateToDiplomaGenerator }) => {
     
   const fightRecord = student.fights.reduce((acc, fight) => {
     if (fight.result === 'win') acc.wins++;
@@ -34,14 +36,21 @@ const PublicStudentProfile: React.FC<PublicStudentProfileProps> = ({ student, do
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto">
-      {onBack && (
-        <div className="mb-8">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-              <ChevronLeftIcon className="w-5 h-5" />
-              {backButtonText || 'Voltar para o Dojo'}
-          </button>
-        </div>
-      )}
+      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+          {onBack ? (
+            <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                <ChevronLeftIcon className="w-5 h-5" />
+                {backButtonText || 'Voltar para o Dojo'}
+            </button>
+          ) : <div></div>}
+
+          {onNavigateToDiplomaGenerator && (
+             <button onClick={() => onNavigateToDiplomaGenerator(student)} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 duration-200">
+                <CertificateIcon className="w-4 h-4" />
+                Gerar Certificado
+            </button>
+          )}
+      </div>
 
       <header className="text-center mb-10 flex flex-col items-center gap-4">
         <div className="relative w-24 h-24 md:w-32 md:h-32">

@@ -136,6 +136,7 @@ export interface Dojo {
   owner_id: string;
   name: string;
   team_name: string;
+  master_name?: string;
   modalities: MartialArt[];
   logo_url?: string;
   team_logo_url?: string;

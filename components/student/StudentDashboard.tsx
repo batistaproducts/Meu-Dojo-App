@@ -11,6 +11,7 @@ import CloseIcon from '../icons/CloseIcon';
 import UploadIcon from '../icons/UploadIcon';
 import UserIcon from '../icons/UserIcon';
 import StoreView from '../store/StoreView';
+import DiplomaGenerator from '../../features/diploma/DiplomaGenerator';
 
 interface StudentDashboardProps {
     student: (Student & { dojos: Dojo | null }) | null;
@@ -100,7 +101,7 @@ const EditProfileModal: React.FC<{
 
 // --- Main Dashboard Component ---
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams' | 'store'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams' | 'store' | 'diploma'>('profile');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [dojo, setDojo] = useState<Dojo | null>(student?.dojos || null);
@@ -157,28 +158,24 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
 
     const loadStoreData = async () => {
         if (products.length > 0) return;
-        // Ensure we have a dojo ID to filter against, otherwise we only show globals, but currentStudent usually has a dojo
         const studentDojoId = currentStudent?.dojo_id;
         
         setIsLoading(true);
         try {
-             // Query: Status TRUE AND (Dojo_ID = Student's Dojo OR Dojo_ID is NULL)
              let query = supabase
                 .from('products')
                 .select('*')
-                .eq('status', true); // Only active products
+                .eq('status', true);
 
              if (studentDojoId) {
                  query = query.or(`dojo_id.eq.${studentDojoId},dojo_id.is.null`);
              } else {
-                 // If student has no dojo (unlikely here but safe), show only global items
                  query = query.is('dojo_id', null);
              }
 
              const { data, error } = await query;
              
              if (error) {
-                 // Ignore missing table errors to prevent crashing if SQL script hasn't run yet
                  const isIgnorable = error.code === '42P01' || 
                                      (error.message && error.message.includes('Could not find the table')) ||
                                      (error.message && error.message.includes('does not exist'));
@@ -195,7 +192,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
         } catch (err: any) {
             const errorMessage = err.message || 'Unknown error';
             console.error(`Failed to load store products: ${errorMessage}`);
-            // Don't crash the UI, just show empty list
             setProducts([]);
         } finally {
             setIsLoading(false);
@@ -277,28 +273,30 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                 ) : (
                     <>
                         {/* Dashboard Navigation */}
-                        <div className="mb-6 overflow-x-auto">
-                             <nav className="flex space-x-4 border-b border-gray-200 dark:border-gray-700 min-w-max">
-                                <button
-                                    onClick={() => setActiveTab('profile')}
-                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'profile' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-                                >
-                                    Meu Perfil
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('team')}
-                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'team' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-                                >
-                                    Minha Equipe
-                                </button>
-                                 <button
-                                    onClick={() => setActiveTab('store')}
-                                    className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'store' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
-                                >
-                                    Loja
-                                </button>
-                             </nav>
-                        </div>
+                        {activeTab !== 'diploma' && (
+                            <div className="mb-6 overflow-x-auto">
+                                <nav className="flex space-x-4 border-b border-gray-200 dark:border-gray-700 min-w-max">
+                                    <button
+                                        onClick={() => setActiveTab('profile')}
+                                        className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'profile' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                    >
+                                        Meu Perfil
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('team')}
+                                        className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'team' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                    >
+                                        Minha Equipe
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('store')}
+                                        className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'store' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                    >
+                                        Loja
+                                    </button>
+                                </nav>
+                            </div>
+                        )}
 
                         {/* Content Area */}
                         {activeTab === 'profile' && currentStudent && (
@@ -319,8 +317,18 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                                     teamLogoUrl={dojo?.team_logo_url}
                                     scheduledEvent={scheduledEvent}
                                     scheduledExam={scheduledExam}
+                                    onNavigateToDiplomaGenerator={() => setActiveTab('diploma')}
                                 />
                             </div>
+                        )}
+                        
+                        {activeTab === 'diploma' && currentStudent && dojo && (
+                            <DiplomaGenerator 
+                                students={[currentStudent]} 
+                                dojo={dojo} 
+                                user={user} 
+                                onBack={() => setActiveTab('profile')} 
+                            />
                         )}
 
                         {activeTab === 'team' && dojo && (

@@ -204,7 +204,12 @@ const App: React.FC = () => {
   
   const handleDojoCreated = async (d: DojoCreationData) => {
       if (!user) return;
-      const { data } = await supabase.from('dojos').insert({...d, owner_id: user.id}).select().single();
+      const { data } = await supabase.from('dojos').insert({
+        ...d, 
+        owner_id: user.id,
+        master_name: user.user_metadata.name // Save the master's name on creation
+      }).select().single();
+      
       if (data) {
           setDojo(data);
           fetchMasterData(user.id);

@@ -16,6 +16,7 @@ interface DojoSettingsModalProps {
 const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, onSave }) => {
     const [name, setName] = useState(dojo.name);
     const [teamName, setTeamName] = useState(dojo.team_name);
+    const [masterName, setMasterName] = useState(dojo.master_name || '');
     const [phone, setPhone] = useState(dojo.phone || '');
     const [instagram, setInstagram] = useState(dojo.instagram_handle || '');
     const [selectedModalities, setSelectedModalities] = useState<MartialArt[]>(dojo.modalities);
@@ -48,6 +49,7 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
             const updates: Partial<Dojo> = {};
             if (name !== dojo.name) updates.name = name;
             if (teamName !== dojo.team_name) updates.team_name = teamName;
+            if (masterName !== (dojo.master_name || '')) updates.master_name = masterName;
             if (phone !== (dojo.phone || '')) updates.phone = phone;
             if (instagram !== (dojo.instagram_handle || '')) updates.instagram_handle = instagram;
             
@@ -91,6 +93,10 @@ const DojoSettingsModal: React.FC<DojoSettingsModalProps> = ({ dojo, onClose, on
                         <div>
                           <label htmlFor="teamName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Equipe</label>
                           <input id="teamName" type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} required className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5"/>
+                        </div>
+                        <div>
+                          <label htmlFor="masterName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Nome do Mestre Responsável</label>
+                          <input id="masterName" type="text" value={masterName} onChange={(e) => setMasterName(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5" placeholder="Nome que aparecerá nos certificados"/>
                         </div>
                          <div>
                           <label htmlFor="phone" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Telefone (Opcional)</label>

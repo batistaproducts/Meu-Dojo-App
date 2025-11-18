@@ -170,6 +170,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
         teamLogoUrl={dojo.team_logo_url}
         onBack={() => setView('profile')}
         backButtonText="Voltar para o Perfil do Aluno"
+        onNavigateToDiplomaGenerator={(s) => onNavigateToDiplomaGenerator([s])}
     />;
   }
 
