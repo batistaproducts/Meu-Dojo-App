@@ -21,6 +21,7 @@ interface NavLink {
 const navLinks: NavLink[] = [
     { view: 'dashboard', label: 'Painel Principal', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg> },
     { view: 'dojo_manager', label: 'Gerenciar Dojo', icon: <UserIcon className="h-5 w-5" /> },
+    { view: 'store', label: 'Loja', icon: <ShoppingBagIcon className="h-5 w-5" /> },
     { view: 'public_dojo_page', label: 'Minha Página', icon: <GlobeIcon className="h-5 w-5" /> },
     { view: 'championships', label: 'Campeonatos', icon: <MedalIcon className="h-5 w-5" /> },
     { view: 'exams', label: 'Provas', icon: <TrophyIcon className="h-5 w-5" /> },

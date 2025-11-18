@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest, Product } from '../../types';
+import { Dojo, Student, Exam, StudentGrading, Fight, StudentUserLink, StudentRequest } from '../../types';
 import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
@@ -11,9 +11,7 @@ import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import CertificateIcon from '../icons/CertificateIcon';
-import GlobeIcon from '../icons/GlobeIcon';
 import PublicStudentProfile from '../student/PublicStudentProfile';
-import StoreView from '../store/StoreView';
 
 interface DojoManagerProps {
   dojo: Dojo;
@@ -21,7 +19,6 @@ interface DojoManagerProps {
   exams: Exam[];
   studentUserLinks: StudentUserLink[];
   studentRequests: StudentRequest[];
-  products: Product[];
   onSaveStudent: (student: Omit<Student, 'dojo_id'>, pictureBase64?: string) => Promise<void>;
   onScheduleGraduation: (examId: string, date: string, attendees: StudentGrading[]) => Promise<void>;
   onSaveSettings: (updates: Partial<Dojo>) => Promise<void>;
@@ -31,14 +28,11 @@ interface DojoManagerProps {
   onNavigateToDiplomaGenerator: (students: Student[]) => void;
   onApproveRequest: (request: StudentRequest) => Promise<void>;
   onRejectRequest: (requestId: string) => Promise<void>;
-  onAddProduct: (product: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => Promise<void>;
-  onEditProduct: (product: Product) => Promise<void>;
-  onDeleteProduct: (productId: string) => Promise<void>;
 }
 
-const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studentUserLinks, studentRequests, products, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator, onApproveRequest, onRejectRequest, onAddProduct, onEditProduct, onDeleteProduct }) => {
+const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studentUserLinks, studentRequests, onSaveStudent, onScheduleGraduation, onSaveSettings, onViewPublicProfile, onAddFight, onUnlinkStudent, onNavigateToDiplomaGenerator, onApproveRequest, onRejectRequest }) => {
   const [view, setView] = useState<'list' | 'profile' | 'public_profile'>('list');
-  const [activeTab, setActiveTab] = useState<'students' | 'requests' | 'store'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'requests'>('students');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGraduationModalOpen, setIsGraduationModalOpen] = useState(false);
@@ -239,12 +233,6 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                 Solicitações
                 {studentRequests.length > 0 && <span className="absolute top-3 -right-3.5 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">{studentRequests.length}</span>}
             </button>
-             <button
-                onClick={() => setActiveTab('store')}
-                className={`relative whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors ${activeTab === 'store' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'}`}
-            >
-                Loja do Dojo
-            </button>
         </nav>
       </div>
 
@@ -335,17 +323,6 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
             </div>
         </div>
       )}
-
-      {activeTab === 'store' && (
-          <StoreView 
-            products={products} 
-            isAdmin={true}
-            onAddProduct={onAddProduct}
-            onEditProduct={onEditProduct}
-            onDeleteProduct={onDeleteProduct}
-          />
-      )}
-
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-fade-in">

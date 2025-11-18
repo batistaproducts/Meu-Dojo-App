@@ -13,6 +13,7 @@ export type AppView =
     | 'championships' 
     | 'student_dashboard' 
     | 'admin_store'
+    | 'store' // Nova view para a loja do mestre
     | 'sysadmin_panel';
 
 /**
