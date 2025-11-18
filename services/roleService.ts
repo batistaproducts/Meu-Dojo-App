@@ -13,8 +13,9 @@ export type AppView =
     | 'championships' 
     | 'student_dashboard' 
     | 'admin_store'
-    | 'store' // Nova view para a loja do mestre
-    | 'sysadmin_panel';
+    | 'store'
+    | 'sysadmin_panel'
+    | 'metrics'; // Nova view de métricas
 
 /**
  * Fetches permissions from the 'system_roles' table in Supabase based on a user's role.

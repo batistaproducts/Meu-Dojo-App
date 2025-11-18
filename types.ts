@@ -157,6 +157,24 @@ export interface StudentRequest {
   dojos?: { name: string } | null;
 }
 
+export interface DashboardConfig {
+    id_dash: string;
+    json_config: {
+        Titulo: string;
+        Tipo: 'Quantitativo' | 'Pizza' | 'Barra' | 'Coluna' | 'Linha';
+        colunas: number;
+        linhas: number;
+    };
+    json_regras: {
+        source: string;
+        operation: string;
+        field?: string;
+    };
+    status: boolean;
+    posicao: number;
+    id_dojo: string | null;
+}
+
 
 // FIX: Add types for the old Gemini diploma generator to resolve import errors.
 export interface DiplomaStyle {

@@ -6,6 +6,7 @@ import ShoppingBagIcon from './icons/ShoppingBagIcon';
 import GlobeIcon from './icons/GlobeIcon';
 import TrophyIcon from './icons/TrophyIcon';
 import ClipboardCheckIcon from './icons/ClipboardCheckIcon';
+import ChartBarIcon from './icons/ChartBarIcon';
 import { AppView } from '../services/roleService';
 import { Student } from '../types';
 
@@ -77,6 +78,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
             title: 'Loja',
             description: 'Gerencie produtos e links de afiliados.',
             icon: <ShoppingBagIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+        },
+        {
+            view: 'metrics',
+            title: 'Métricas',
+            description: 'Visualize dashboards e indicadores de performance.',
+            icon: <ChartBarIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         {
             view: 'public_dojo_page',

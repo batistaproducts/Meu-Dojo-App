@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData } from './types';
@@ -17,6 +18,7 @@ import PublicDojoPage from './components/dojo/PublicDojoPage';
 import StoreView from './components/store/StoreView';
 import SysAdminPanel from './components/admin/SysAdminPanel';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
+import MetricsView from './components/metrics/MetricsView'; // Import new view
 import SpinnerIcon from './components/icons/SpinnerIcon';
 
 const App: React.FC = () => {
@@ -132,7 +134,7 @@ const App: React.FC = () => {
           const { data: cData } = await supabase.from('championships').select('*').eq('dojo_id', dojoData.id);
           setChampionships(cData || []);
 
-          const { data: pData } = await supabase.from('products').select('*').eq('dojo_id', dojoData.id);
+          const { data: pData } = await supabase.from('products').select('*'); // fetch global for admin purposes, filtered in view
           setProducts(pData || []);
       } else {
           setDojo(null); // New master
@@ -375,7 +377,11 @@ const App: React.FC = () => {
   const handleAddProduct = async (product: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => {
        if (!dojo && userRole !== 'S') return;
        const payload: any = { ...product };
-       if (dojo) payload.dojo_id = dojo.id;
+       if (view === 'admin_store' && userRole === 'S') {
+            payload.dojo_id = null; // Force null for admin store
+       } else if (dojo) {
+            payload.dojo_id = dojo.id;
+       }
        await supabase.from('products').insert(payload);
        if(userRole === 'S') fetchSysAdminData(); else fetchMasterData(user!.id);
   };
@@ -414,7 +420,8 @@ const App: React.FC = () => {
         }
     }
     
-    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M') && (view !== 'sysadmin_panel' || userRole !== 'S')) {
+    // Allow access to Admin Store / SysAdmin Panel even without a dojo
+    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M') && (view !== 'sysadmin_panel' || userRole !== 'S') && (view !== 'metrics')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
     
@@ -449,6 +456,8 @@ const App: React.FC = () => {
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
         />;
+      case 'metrics':
+        return <MetricsView students={students} dojo={dojo} />;
       case 'sysadmin_panel':
         return userRole === 'S' ? (
             <SysAdminPanel 
