@@ -119,12 +119,13 @@ export interface Championship {
 
 export interface Product {
   id?: string;
-  dojo_id: string;
+  dojo_id?: string;
   name: string;
   description: string;
   price: number;
   image_url?: string;
   affiliate_url: string;
+  status: boolean;
   created_at?: string;
 }
 

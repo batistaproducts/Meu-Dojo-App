@@ -92,43 +92,51 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
             {/* Grid */}
             {filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredProducts.map(product => (
-                        <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full border border-gray-100 dark:border-gray-700 group">
-                            <div className="relative h-48 sm:h-56 bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                                {product.image_url ? (
-                                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400">Sem Imagem</div>
-                                )}
-                                {isAdmin && (
-                                    <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleOpenEdit(product)} className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full shadow-lg"><EditIcon className="w-4 h-4" /></button>
-                                        <button onClick={() => handleDeleteWrapper(product.id!)} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg"><TrashIcon className="w-4 h-4" /></button>
+                    {filteredProducts.map(product => {
+                         const isActive = product.status !== false;
+                         return (
+                            <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full border border-gray-100 dark:border-gray-700 group ${!isActive ? 'opacity-75' : ''}`}>
+                                <div className="relative h-48 sm:h-56 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                    {product.image_url ? (
+                                        <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover transition-transform duration-500 ${isActive ? 'group-hover:scale-105' : 'grayscale'}`} />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-400">Sem Imagem</div>
+                                    )}
+                                    {isAdmin && (
+                                        <>
+                                            {!isActive && (
+                                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Inativo</div>
+                                            )}
+                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleOpenEdit(product)} className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full shadow-lg"><EditIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteWrapper(product.id!)} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="p-5 flex flex-col flex-grow">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-grow line-clamp-3">{product.description}</p>
+                                    <div className="flex justify-between items-end mt-auto">
+                                        <div>
+                                            <p className="text-xs text-gray-400 uppercase font-semibold">Valor</p>
+                                            <p className="text-xl font-bold text-red-600 dark:text-white">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                                            </p>
+                                        </div>
+                                        <a 
+                                            href={product.affiliate_url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className={`px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors ${!isActive ? 'pointer-events-none opacity-50' : ''}`}
+                                        >
+                                            Ver Produto
+                                        </a>
                                     </div>
-                                )}
-                            </div>
-                            <div className="p-5 flex flex-col flex-grow">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-grow line-clamp-3">{product.description}</p>
-                                <div className="flex justify-between items-end mt-auto">
-                                    <div>
-                                        <p className="text-xs text-gray-400 uppercase font-semibold">Valor</p>
-                                        <p className="text-xl font-bold text-red-600 dark:text-white">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                                        </p>
-                                    </div>
-                                    <a 
-                                        href={product.affiliate_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
-                                    >
-                                        Ver Produto
-                                    </a>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             ) : (
                 <div className="text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">

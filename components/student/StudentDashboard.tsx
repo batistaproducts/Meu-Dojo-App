@@ -157,11 +157,25 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
 
     const loadStoreData = async () => {
         if (products.length > 0) return;
-        if (!currentStudent?.dojo_id) return;
+        // Ensure we have a dojo ID to filter against, otherwise we only show globals, but currentStudent usually has a dojo
+        const studentDojoId = currentStudent?.dojo_id;
         
         setIsLoading(true);
         try {
-             const { data, error } = await supabase.from('products').select('*').eq('dojo_id', currentStudent.dojo_id);
+             // Query: Status TRUE AND (Dojo_ID = Student's Dojo OR Dojo_ID is NULL)
+             let query = supabase
+                .from('products')
+                .select('*')
+                .eq('status', true); // Only active products
+
+             if (studentDojoId) {
+                 query = query.or(`dojo_id.eq.${studentDojoId},dojo_id.is.null`);
+             } else {
+                 // If student has no dojo (unlikely here but safe), show only global items
+                 query = query.is('dojo_id', null);
+             }
+
+             const { data, error } = await query;
              
              if (error) {
                  // Ignore missing table errors to prevent crashing if SQL script hasn't run yet

@@ -16,6 +16,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState<string>('');
     const [affiliateUrl, setAffiliateUrl] = useState('');
+    const [status, setStatus] = useState(true);
     const [imageBase64, setImageBase64] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -25,6 +26,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
             setDescription(product.description);
             setPrice(product.price.toString());
             setAffiliateUrl(product.affiliate_url);
+            setStatus(product.status ?? true);
             setImageBase64(product.image_url || null);
         }
     }, [product]);
@@ -55,6 +57,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                 description,
                 price: parseFloat(price.replace(',', '.')),
                 affiliate_url: affiliateUrl,
+                status,
                 image_url: imageBase64 || undefined
             });
             onClose();
@@ -111,6 +114,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({ product, onClose, o
                     <div>
                         <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Descrição Curta</label>
                         <textarea id="description" rows={3} value={description} onChange={e => setDescription(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg block w-full p-2.5" placeholder="Detalhes sobre o produto..."></textarea>
+                    </div>
+                    
+                    <div className="flex items-center">
+                         <input 
+                            id="status" 
+                            type="checkbox" 
+                            checked={status} 
+                            onChange={e => setStatus(e.target.checked)} 
+                            className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500 dark:focus:ring-red-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" 
+                        />
+                        <label htmlFor="status" className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Produto Ativo (Visível para alunos)</label>
                     </div>
 
                     <div className="flex justify-end gap-4 pt-4">
