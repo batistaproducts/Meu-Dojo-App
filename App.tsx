@@ -277,16 +277,12 @@ const AuthenticatedApp: React.FC = () => {
           supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A')
         ]);
         
-        // Fetch products separately to allow "globally created" products if we are fetching for admin, 
-        // but here we are fetching for a DOJO owner. 
-        // If the user is also an 'S' (SysAdmin), they might want to see everything, but let's keep it simple first:
-        // Owners see products linked to their Dojo.
-        // NOTE: To see GLOBAL products (admin created), we remove the dojo_id filter or make it OR.
-        // However, for Management, they usually manage THEIR OWN products.
-        const productsRes = await supabase.from('products').select('*'); 
-        // For now, we fetch all products. In a real large app, we would filter by owner or role. 
-        // But since we want the Admin User to see everything, and a Master to see theirs + global, fetching all is okay for small scale.
-        // Optimization: Filter by dojo_id OR null.
+        // Fetch products separately.
+        // Owners see products linked to their Dojo AND Global products (dojo_id is null).
+        const productsRes = await supabase
+          .from('products')
+          .select('*')
+          .or(`dojo_id.eq.${dojoData.id},dojo_id.is.null`);
         
         // Check for critical errors in core tables
         const criticalError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
@@ -312,10 +308,6 @@ const AuthenticatedApp: React.FC = () => {
         setStudentUserLinks(linksRes.data || []);
         setProducts(productsRes.data || []);
     } else {
-        // Even if no dojo, if user is SysAdmin, they might want to see global products
-        // We can handle that later or let them create a dojo first.
-        // For the purpose of "Admin user with no dojo", we might need to fetch products too if they are in 'admin_store' view.
-        // But loadMasterData assumes dojo ownership primarily.
         setDojo(null);
         
         // If SysAdmin, fetch products anyway
@@ -818,7 +810,7 @@ const AuthenticatedApp: React.FC = () => {
         return <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
     }
     
-    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S')) {
+    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
     
@@ -846,7 +838,7 @@ const AuthenticatedApp: React.FC = () => {
       case 'store': // View para o Mestre
         return <StoreView 
             products={products} 
-            isAdmin={true}
+            isAdmin={true} // Mestre pode administrar seus produtos
             onAddProduct={handleAddProduct}
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}

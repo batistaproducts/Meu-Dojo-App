@@ -9,25 +9,25 @@ const Logo: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...props }) 
       className={`fill-current ${className || ''}`}
       {...props}
     >
-      {/* Top Lintel (Kasagi) */}
-      <path d="M15,50 Q150,20 285,50 L290,40 Q150,5 10,40 Z" />
+      {/* Top Lintel (Kasagi) - Curved */}
+      <path d="M20,60 Q150,30 280,60 L285,50 Q150,15 15,50 Z" />
       
-      {/* Second Lintel (Nuki) */}
-      <rect x="45" y="65" width="210" height="14" rx="1" />
+      {/* Second Lintel (Nuki) - Straight with extensions */}
+      <rect x="40" y="85" width="220" height="15" rx="2" />
       
-      {/* Pillars (Hashira) */}
-      <rect x="85" y="55" width="18" height="135" />
-      <rect x="197" y="55" width="18" height="135" />
+      {/* Pillars (Hashira) - Slightly angled or straight */}
+      <rect x="75" y="70" width="20" height="140" />
+      <rect x="205" y="70" width="20" height="140" />
       
       {/* Center Strut (Gakuzuka) */}
-      <rect x="146" y="65" width="8" height="25" />
+      <rect x="145" y="85" width="10" height="30" />
 
-      {/* Kanji '首' (Kubi/Shou - Head/Leader) */}
+      {/* Kanji '首' (Kubi/Shou) centered in the gate */}
       <text 
         x="150" 
-        y="155" 
+        y="175" 
         textAnchor="middle" 
-        fontSize="60" 
+        fontSize="75" 
         fontFamily="serif" 
         fontWeight="bold"
       >
@@ -37,7 +37,7 @@ const Logo: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...props }) 
       {/* Text: meu */}
       <text 
         x="150" 
-        y="215" 
+        y="235" 
         textAnchor="middle" 
         fontSize="24" 
         fontFamily="'Montserrat', sans-serif" 
@@ -50,7 +50,7 @@ const Logo: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...props }) 
       {/* Text: DOJO */}
       <text 
         x="150" 
-        y="260" 
+        y="280" 
         textAnchor="middle" 
         fontSize="54" 
         fontFamily="'Montserrat', sans-serif" 
