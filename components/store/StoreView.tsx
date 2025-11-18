@@ -17,6 +17,7 @@ interface StoreViewProps {
 const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, onEditProduct, onDeleteProduct }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'name_asc'>('name_asc');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -27,12 +28,24 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
             (p.market && p.market.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
+        if (isAdmin && statusFilter !== 'all') {
+            if (statusFilter === 'active') {
+                result = result.filter(p => p.status !== false);
+            } else {
+                result = result.filter(p => p.status === false);
+            }
+        } else if (!isAdmin) {
+            // For non-admins, filter logic is handled in parent component/query usually, 
+            // but as a safeguard we only show active items here if the parent passed inactive ones.
+            result = result.filter(p => p.status !== false);
+        }
+
         return result.sort((a, b) => {
             if (sortBy === 'price_asc') return a.price - b.price;
             if (sortBy === 'price_desc') return b.price - a.price;
             return a.name.localeCompare(b.name);
         });
-    }, [products, searchTerm, sortBy]);
+    }, [products, searchTerm, sortBy, statusFilter, isAdmin]);
 
     const handleOpenAdd = () => {
         setEditingProduct(null);
@@ -79,6 +92,19 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                     onChange={e => setSearchTerm(e.target.value)}
                     className="flex-grow bg-gray-100 dark:bg-gray-700 border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white rounded-lg px-4 py-2 transition-colors"
                 />
+                
+                {isAdmin && (
+                    <select 
+                        value={statusFilter} 
+                        onChange={e => setStatusFilter(e.target.value as any)}
+                        className="bg-gray-100 dark:bg-gray-700 border-transparent focus:border-red-500 text-gray-900 dark:text-white rounded-lg px-4 py-2 cursor-pointer"
+                    >
+                        <option value="all">Todos os Status</option>
+                        <option value="active">Ativos</option>
+                        <option value="inactive">Inativos</option>
+                    </select>
+                )}
+
                 <select 
                     value={sortBy} 
                     onChange={e => setSortBy(e.target.value as any)}
@@ -96,7 +122,7 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                     {filteredProducts.map(product => {
                          const isActive = product.status !== false;
                          return (
-                            <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full border border-gray-100 dark:border-gray-700 group ${!isActive ? 'opacity-75' : ''}`}>
+                            <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full border border-gray-100 dark:border-gray-700 group ${!isActive && isAdmin ? 'opacity-75' : ''}`}>
                                 <div className="relative h-48 sm:h-56 bg-gray-200 dark:bg-gray-700 overflow-hidden">
                                     {product.image_url ? (
                                         <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover transition-transform duration-500 ${isActive ? 'group-hover:scale-105' : 'grayscale'}`} />
@@ -105,9 +131,9 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                                     )}
                                     {isAdmin && (
                                         <>
-                                            {!isActive && (
-                                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Inativo</div>
-                                            )}
+                                            <div className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded shadow ${isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                                {isActive ? 'Ativo' : 'Inativo'}
+                                            </div>
                                             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => handleOpenEdit(product)} className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full shadow-lg"><EditIcon className="w-4 h-4" /></button>
                                                 <button onClick={() => handleDeleteWrapper(product.id!)} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg"><TrashIcon className="w-4 h-4" /></button>
@@ -136,7 +162,7 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                                             href={product.affiliate_url} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className={`px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors ${!isActive ? 'pointer-events-none opacity-50' : ''}`}
+                                            className={`px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm rounded-lg hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors ${!isActive && !isAdmin ? 'pointer-events-none opacity-50' : ''}`}
                                         >
                                             Ver Produto
                                         </a>
