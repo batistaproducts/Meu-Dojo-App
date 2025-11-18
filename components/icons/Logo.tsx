@@ -5,64 +5,57 @@ const Logo: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...props }) 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 200 220"
+      viewBox="0 0 300 300"
       className={`fill-current ${className || ''}`}
       {...props}
     >
-      {/* Torii Gate Structure */}
-      <path 
-        d="M20,40 Q100,15 180,40 L185,35 Q100,5 15,35 Z" 
-        fill="currentColor"
-      />
-      <path 
-        d="M25,55 Q100,40 175,55 L175,50 Q100,35 25,50 Z" 
-        fill="currentColor"
-      />
+      {/* Top Lintel (Kasagi) */}
+      <path d="M15,50 Q150,20 285,50 L290,40 Q150,5 10,40 Z" />
       
-      {/* Pillars */}
-      <rect x="45" y="45" width="12" height="90" rx="1" fill="currentColor" />
-      <rect x="143" y="45" width="12" height="90" rx="1" fill="currentColor" />
+      {/* Second Lintel (Nuki) */}
+      <rect x="45" y="65" width="210" height="14" rx="1" />
       
-      {/* Center Support */}
-      <rect x="94" y="55" width="12" height="25" fill="currentColor" />
+      {/* Pillars (Hashira) */}
+      <rect x="85" y="55" width="18" height="135" />
+      <rect x="197" y="55" width="18" height="135" />
+      
+      {/* Center Strut (Gakuzuka) */}
+      <rect x="146" y="65" width="8" height="25" />
 
-      {/* Kanji '覚' (Perception/Enlightenment) */}
+      {/* Kanji '首' (Kubi/Shou - Head/Leader) */}
       <text 
-        x="100" 
-        y="125" 
+        x="150" 
+        y="155" 
         textAnchor="middle" 
-        fontSize="50" 
+        fontSize="60" 
         fontFamily="serif" 
-        fontWeight="bold" 
-        fill="currentColor"
+        fontWeight="bold"
       >
-        覚
+        首
       </text>
 
       {/* Text: meu */}
       <text 
-        x="100" 
-        y="165" 
+        x="150" 
+        y="215" 
         textAnchor="middle" 
-        fontSize="20" 
+        fontSize="24" 
         fontFamily="'Montserrat', sans-serif" 
         fontWeight="400" 
-        letterSpacing="3" 
-        fill="currentColor"
+        letterSpacing="0.1em"
       >
         meu
       </text>
 
       {/* Text: DOJO */}
       <text 
-        x="100" 
-        y="205" 
+        x="150" 
+        y="260" 
         textAnchor="middle" 
-        fontSize="42" 
+        fontSize="54" 
         fontFamily="'Montserrat', sans-serif" 
         fontWeight="800" 
-        letterSpacing="2" 
-        fill="currentColor"
+        letterSpacing="0.05em"
       >
         DOJO
       </text>
