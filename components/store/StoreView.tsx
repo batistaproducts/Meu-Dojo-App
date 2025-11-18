@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Product } from '../../types';
+import { Product, UserRole } from '../../types';
 import PlusIcon from '../icons/PlusIcon';
 import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
@@ -9,12 +9,13 @@ import ProductFormModal from './ProductFormModal';
 interface StoreViewProps {
     products: Product[];
     isAdmin: boolean;
+    userRole?: UserRole | null;
     onAddProduct?: (product: Omit<Product, 'id' | 'dojo_id' | 'created_at'>) => Promise<void>;
     onEditProduct?: (product: Product) => Promise<void>;
     onDeleteProduct?: (productId: string) => Promise<void>;
 }
 
-const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, onEditProduct, onDeleteProduct }) => {
+const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, userRole, onAddProduct, onEditProduct, onDeleteProduct }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortBy, setSortBy] = useState<'price_asc' | 'price_desc' | 'name_asc'>('name_asc');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -28,24 +29,25 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
             (p.market && p.market.toLowerCase().includes(searchTerm.toLowerCase()))
         );
 
-        if (isAdmin && statusFilter !== 'all') {
+        // Filter by status logic
+        if (isAdmin && userRole === 'S' && statusFilter !== 'all') {
             if (statusFilter === 'active') {
                 result = result.filter(p => p.status !== false);
             } else {
                 result = result.filter(p => p.status === false);
             }
         } else if (!isAdmin) {
-            // For non-admins, filter logic is handled in parent component/query usually, 
-            // but as a safeguard we only show active items here if the parent passed inactive ones.
+            // Students only see active products
             result = result.filter(p => p.status !== false);
         }
+        // Note: Masters ('M') see all products mixed, but cannot filter by status via UI per requirement.
 
         return result.sort((a, b) => {
             if (sortBy === 'price_asc') return a.price - b.price;
             if (sortBy === 'price_desc') return b.price - a.price;
             return a.name.localeCompare(b.name);
         });
-    }, [products, searchTerm, sortBy, statusFilter, isAdmin]);
+    }, [products, searchTerm, sortBy, statusFilter, isAdmin, userRole]);
 
     const handleOpenAdd = () => {
         setEditingProduct(null);
@@ -75,7 +77,7 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
         <div className="animate-fade-in">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                 <h2 className="text-3xl font-bold font-cinzel text-gray-900 dark:text-white">Loja do Dojo</h2>
-                {isAdmin && (
+                {isAdmin && userRole === 'S' && (
                     <button onClick={handleOpenAdd} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-semibold">
                         <PlusIcon className="w-5 h-5" />
                         Adicionar Produto
@@ -93,7 +95,8 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                     className="flex-grow bg-gray-100 dark:bg-gray-700 border-transparent focus:border-red-500 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-white rounded-lg px-4 py-2 transition-colors"
                 />
                 
-                {isAdmin && (
+                {/* Status Filter: Only visible for SysAdmin ('S') */}
+                {isAdmin && userRole === 'S' && (
                     <select 
                         value={statusFilter} 
                         onChange={e => setStatusFilter(e.target.value as any)}
@@ -121,6 +124,14 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredProducts.map(product => {
                          const isActive = product.status !== false;
+                         const isGlobalProduct = !product.dojo_id;
+                         
+                         // SysAdmin sees all controls. Master sees controls only for their dojo products.
+                         const hasEditPermission = isAdmin && (userRole === 'S' || !isGlobalProduct);
+                         
+                         // Status Tag visibility: SysAdmin sees all. Master sees only for their products.
+                         const showStatusTag = isAdmin && (userRole === 'S' || !isGlobalProduct);
+
                          return (
                             <div key={product.id} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full border border-gray-100 dark:border-gray-700 group ${!isActive && isAdmin ? 'opacity-75' : ''}`}>
                                 <div className="relative h-48 sm:h-56 bg-gray-200 dark:bg-gray-700 overflow-hidden">
@@ -131,13 +142,17 @@ const StoreView: React.FC<StoreViewProps> = ({ products, isAdmin, onAddProduct, 
                                     )}
                                     {isAdmin && (
                                         <>
-                                            <div className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded shadow ${isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                                {isActive ? 'Ativo' : 'Inativo'}
-                                            </div>
-                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleOpenEdit(product)} className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full shadow-lg"><EditIcon className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteWrapper(product.id!)} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg"><TrashIcon className="w-4 h-4" /></button>
-                                            </div>
+                                            {showStatusTag && (
+                                                <div className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded shadow ${isActive ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                                    {isActive ? 'Ativo' : 'Inativo'}
+                                                </div>
+                                            )}
+                                            {hasEditPermission && (
+                                                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleOpenEdit(product)} className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full shadow-lg"><EditIcon className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDeleteWrapper(product.id!)} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-lg"><TrashIcon className="w-4 h-4" /></button>
+                                                </div>
+                                            )}
                                         </>
                                     )}
                                 </div>

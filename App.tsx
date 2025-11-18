@@ -902,6 +902,7 @@ const AuthenticatedApp: React.FC = () => {
         return <StoreView 
             products={products} 
             isAdmin={true}
+            userRole={userRole || undefined}
             onAddProduct={handleAddProduct}
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
@@ -910,6 +911,7 @@ const AuthenticatedApp: React.FC = () => {
         return <StoreView 
             products={products} 
             isAdmin={true} // Mestre pode administrar seus produtos
+            userRole={userRole || undefined}
             onAddProduct={handleAddProduct}
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
