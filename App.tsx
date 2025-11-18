@@ -17,6 +17,8 @@ import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import StudentDashboard from './components/student/StudentDashboard';
 import ChampionshipManager from './components/championships/ChampionshipManager';
 import StoreView from './components/store/StoreView';
+import SysAdminPanel from './components/admin/SysAdminPanel';
+import DojoSettingsModal from './components/dojo/DojoSettingsModal';
 
 // --- Public Page Loader Components ---
 
@@ -220,6 +222,11 @@ const AuthenticatedApp: React.FC = () => {
   const [studentUserLinks, setStudentUserLinks] = useState<StudentUserLink[]>([]);
   const [studentRequests, setStudentRequests] = useState<StudentRequest[]>([]);
 
+  // SysAdmin State
+  const [allDojos, setAllDojos] = useState<Dojo[]>([]);
+  const [adminSelectedDojo, setAdminSelectedDojo] = useState<Dojo | null>(null);
+
+
   // Diploma Generator State
   const [studentsForDiploma, setStudentsForDiploma] = useState<Student[]>([]);
 
@@ -248,6 +255,7 @@ const AuthenticatedApp: React.FC = () => {
         setScheduledGraduationEvent(null);
         setScheduledExamDetails(null);
         setStudentRequest(null);
+        setAllDojos([]);
         setView('dashboard');
       }
       setSessionChecked(true);
@@ -256,7 +264,41 @@ const AuthenticatedApp: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadMasterData = async (userId: string) => {
+  const fetchDojoSpecificData = async (dojoId: string) => {
+    const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes] = await Promise.all([
+      supabase.from('students').select('*').eq('dojo_id', dojoId),
+      supabase.from('exams').select('*').eq('dojo_id', dojoId),
+      supabase.from('graduation_events').select('*').eq('dojo_id', dojoId),
+      supabase.from('championships').select('*').eq('dojo_id', dojoId),
+      supabase.from('student_requests').select('*').eq('dojo_id', dojoId).eq('status', 'pending'),
+      supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A')
+    ]);
+
+    // Check for critical errors in core tables
+    const criticalError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
+    if (criticalError) throw criticalError;
+
+    return {
+        students: studentsRes.data || [],
+        exams: examsRes.data || [],
+        graduationEvents: eventsRes.data || [],
+        championships: championshipsRes.data || [],
+        studentRequests: requestsRes.data || [],
+        studentUserLinks: linksRes.data || []
+    };
+  };
+
+  const loadMasterData = async (userId: string, role: UserRole) => {
+    // If Admin (S), fetch all dojos first
+    if (role === 'S') {
+        const { data: allDojosData, error: allDojosError } = await supabase
+            .from('dojos')
+            .select('*');
+        
+        if (allDojosError) throw allDojosError;
+        setAllDojos(allDojosData || []);
+    }
+
     const { data: dojoData, error: dojoError } = await supabase
         .from('dojos')
         .select('*')
@@ -267,51 +309,33 @@ const AuthenticatedApp: React.FC = () => {
     
     if (dojoData) {
         setDojo(dojoData);
-        // Fetch core data
-        const [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes] = await Promise.all([
-          supabase.from('students').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('exams').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('graduation_events').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('championships').select('*').eq('dojo_id', dojoData.id),
-          supabase.from('student_requests').select('*').eq('dojo_id', dojoData.id).eq('status', 'pending'),
-          supabase.from('student_user_links').select('student_id, user_id').eq('user_role_type', 'A')
-        ]);
+        const fetchedData = await fetchDojoSpecificData(dojoData.id);
+        setStudents(fetchedData.students);
+        setExams(fetchedData.exams);
+        setGraduationEvents(fetchedData.graduationEvents);
+        setChampionships(fetchedData.championships);
+        setStudentRequests(fetchedData.studentRequests);
+        setStudentUserLinks(fetchedData.studentUserLinks);
         
         // Fetch products separately.
-        // Owners see products linked to their Dojo AND Global products (dojo_id is null).
         const productsRes = await supabase
           .from('products')
           .select('*')
           .or(`dojo_id.eq.${dojoData.id},dojo_id.is.null`);
-        
-        // Check for critical errors in core tables
-        const criticalError = [studentsRes, examsRes, eventsRes, championshipsRes, requestsRes, linksRes].find(res => res.error)?.error;
-        if (criticalError) throw criticalError;
 
-        // Check for non-critical errors (products)
         if (productsRes.error) {
             const isIgnorable = productsRes.error.code === '42P01' || 
                                 (productsRes.error.message && productsRes.error.message.includes('Could not find the table')) ||
                                 (productsRes.error.message && productsRes.error.message.includes('does not exist'));
-            
-            if (!isIgnorable) {
-                throw productsRes.error;
-            }
-            // If ignorable, we just have empty products, which is handled by empty array fallback
+            if (!isIgnorable) throw productsRes.error;
         }
-
-        setStudents(studentsRes.data || []);
-        setExams(examsRes.data || []);
-        setGraduationEvents(eventsRes.data || []);
-        setChampionships(championshipsRes.data || []);
-        setStudentRequests(requestsRes.data || []);
-        setStudentUserLinks(linksRes.data || []);
         setProducts(productsRes.data || []);
+
     } else {
         setDojo(null);
         
         // If SysAdmin, fetch products anyway
-        if (userRole === 'S') {
+        if (role === 'S') {
              const { data: productsData, error: productsError } = await supabase.from('products').select('*');
              if (!productsError) setProducts(productsData || []);
         }
@@ -383,7 +407,7 @@ const AuthenticatedApp: React.FC = () => {
                     }
 
                 } else if (role === 'M' || role === 'S') {
-                    await loadMasterData(currentUser.id);
+                    await loadMasterData(currentUser.id, role);
                 }
             } else {
                 // No link found, check if they are a student awaiting approval
@@ -416,7 +440,7 @@ const AuthenticatedApp: React.FC = () => {
                         setUserRole('M');
                         const userPermissions = await getPermissionsForRole('M');
                         setPermissions(userPermissions);
-                        await loadMasterData(currentUser.id);
+                        await loadMasterData(currentUser.id, 'M');
 
                     } else if (intendedRole === 'student') {
                         // A student without a request is an orphan because we don't know which dojo they applied to.
@@ -458,6 +482,49 @@ const AuthenticatedApp: React.FC = () => {
     const { data, error } = await supabase.from('dojos').update(updates).eq('id', dojo.id).select().single();
     if (error) throw error;
     setDojo(data);
+  };
+
+  const handleAdminSaveSettings = async (updates: Partial<Dojo>) => {
+      if (!adminSelectedDojo) return;
+      
+      const { data, error } = await supabase.from('dojos').update(updates).eq('id', adminSelectedDojo.id).select().single();
+      if (error) throw error;
+      
+      // Update local allDojos state
+      setAllDojos(prev => prev.map(d => d.id === data.id ? data : d));
+      // Also update current dojo if it matches
+      if (dojo && dojo.id === data.id) {
+          setDojo(data);
+      }
+  };
+  
+  const handleAdminEnterDojoContext = async (targetDojo: Dojo, targetView: AppView) => {
+      setIsLoading(true);
+      try {
+          const fetchedData = await fetchDojoSpecificData(targetDojo.id);
+          
+          setDojo(targetDojo);
+          setStudents(fetchedData.students);
+          setExams(fetchedData.exams);
+          setGraduationEvents(fetchedData.graduationEvents);
+          setChampionships(fetchedData.championships);
+          setStudentRequests(fetchedData.studentRequests);
+          setStudentUserLinks(fetchedData.studentUserLinks);
+          
+          // Refresh products for the specific dojo context + globals
+          const productsRes = await supabase
+            .from('products')
+            .select('*')
+            .or(`dojo_id.eq.${targetDojo.id},dojo_id.is.null`);
+           if (!productsRes.error) setProducts(productsRes.data || []);
+           
+          setView(targetView);
+      } catch (e: any) {
+          console.error("Failed to load Dojo context:", e);
+          alert(`Erro ao carregar dados do Dojo: ${e.message}`);
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   const handleSaveStudent = async (studentData: Omit<Student, 'dojo_id'>, pictureBase64?: string) => {
@@ -814,7 +881,7 @@ const AuthenticatedApp: React.FC = () => {
         return <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
     }
     
-    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M')) {
+    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M') && (view !== 'sysadmin_panel' || userRole !== 'S')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
     
@@ -848,7 +915,14 @@ const AuthenticatedApp: React.FC = () => {
             onDeleteProduct={handleDeleteProduct}
         />;
       case 'sysadmin_panel':
-        return userRole === 'S' ? <div><h1>Painel SysAdmin</h1><p>Funcionalidade a ser implementada.</p></div> : <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
+        return userRole === 'S' ? (
+            <SysAdminPanel 
+                dojos={allDojos} 
+                onConfigure={(dojoToEdit) => setAdminSelectedDojo(dojoToEdit)}
+                onViewStudents={(dojoToView) => handleAdminEnterDojoContext(dojoToView, 'dojo_manager')}
+                onViewGraduations={(dojoToView) => handleAdminEnterDojoContext(dojoToView, 'grading')}
+            />
+        ) : <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
       case 'dashboard':
       default:
         return <Dashboard onNavigate={handleNavigate} permissions={permissions} />;
@@ -901,6 +975,14 @@ const AuthenticatedApp: React.FC = () => {
         <main className="container mx-auto px-4 py-8">
           {renderMasterView()}
         </main>
+
+        {adminSelectedDojo && (
+            <DojoSettingsModal 
+                dojo={adminSelectedDojo}
+                onClose={() => setAdminSelectedDojo(null)}
+                onSave={handleAdminSaveSettings}
+            />
+        )}
       </div>
     );
   }
