@@ -25,7 +25,7 @@ const generateLast12Months = (): { month: number, year: number }[] => {
 const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, onCancel, isLinked }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [modality, setModality] = useState(modalities[0]?.name || '');
+  const [modality, setModality] = useState(modalities[0]?.name || 'Definir');
   const [belts, setBelts] = useState<Belt[]>([]);
   const [selectedBelt, setSelectedBelt] = useState<Belt | null>(null);
   const [last_graduation_date, setLastGraduationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -44,9 +44,15 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
       setPayments(student.payments);
       setProfilePictureBase64(student.profile_picture_url);
     } else {
+        // New student default behavior
         setPayments(generateLast12Months().map(d => ({...d, status: 'open'})));
+        if (modalities.length === 1) {
+            setModality(modalities[0].name);
+        } else if (modalities.length > 1) {
+            setModality('Definir');
+        }
     }
-  }, [student]);
+  }, [student, modalities]);
 
   useEffect(() => {
     const selectedModality = modalities.find(m => m.name === modality);
@@ -58,7 +64,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
     } else if (newBelts.length > 0) {
         setSelectedBelt(newBelts[0]);
     } else {
-        setSelectedBelt(null);
+        // Default belt if "Definir" or no belts found
+        setSelectedBelt({ name: 'Branca', color: '#FFFFFF' });
     }
   }, [modality, modalities, student]);
 
@@ -152,7 +159,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
             <div>
                 <label htmlFor="modality" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidade</label>
                 <select id="modality" value={modality} onChange={(e) => setModality(e.target.value)} className="bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-red-500 dark:focus:ring-white focus:border-red-500 dark:focus:border-white block w-full p-2.5">
-                {modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
+                    {modality === 'Definir' && <option value="Definir">Definir (Selecione...)</option>}
+                    {modalities.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
                 </select>
             </div>
         </div>
@@ -160,19 +168,25 @@ const StudentForm: React.FC<StudentFormProps> = ({ student, modalities, onSave, 
       
       <div>
           <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Graduação</h3>
-          <div className="flex flex-wrap gap-2">
-            {belts.map((belt) => (
-              <button
-                type="button"
-                key={belt.name}
-                onClick={() => setSelectedBelt(belt)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-white ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`}
-                style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF', textShadow: '1px 1px 2px rgba(0,0,0,0.4)' }}
-              >
-                {belt.name}
-              </button>
-            ))}
-          </div>
+          {modality === 'Definir' ? (
+             <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg text-yellow-800 dark:text-yellow-200 text-sm">
+                 Selecione uma modalidade acima para visualizar e definir a graduação.
+             </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+                {belts.map((belt) => (
+                <button
+                    type="button"
+                    key={belt.name}
+                    onClick={() => setSelectedBelt(belt)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 border-2 ${selectedBelt?.name === belt.name ? 'ring-2 ring-offset-2 ring-red-500 dark:ring-white ring-offset-white dark:ring-offset-gray-800' : 'border-transparent'}`}
+                    style={{ backgroundColor: belt.color, color: belt.color === '#FFFFFF' || belt.color === '#FFFF00' ? '#000' : '#FFF', textShadow: '1px 1px 2px rgba(0,0,0,0.4)' }}
+                >
+                    {belt.name}
+                </button>
+                ))}
+            </div>
+          )}
       </div>
 
        <div className="grid md:grid-cols-2 gap-6">

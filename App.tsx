@@ -300,12 +300,28 @@ const App: React.FC = () => {
        let studentId = student?.id;
        
        if (!studentId) {
+            // Logic to determine default modality
+            let assignedModality = 'Definir';
+            let assignedBelt = { name: 'Branca', color: '#FFFFFF' };
+
+            // Fetch dojo details to check modalities
+            const { data: dojoData } = await supabase.from('dojos').select('modalities').eq('id', req.dojo_id).single();
+            
+            if (dojoData && dojoData.modalities && dojoData.modalities.length === 1) {
+                const defaultModality = dojoData.modalities[0];
+                assignedModality = defaultModality.name;
+                if (defaultModality.belts.length > 0) {
+                     assignedBelt = defaultModality.belts[0];
+                }
+            }
+            // If modalities.length > 1, it remains 'Definir' and Belt remains 'Branca' (default)
+
             const { data: newStudent } = await supabase.from('students').insert({
                dojo_id: req.dojo_id,
                name: req.user_name,
                email: req.user_email,
-               modality: 'Jiu-Jitsu',
-               belt: { name: 'Branca', color: '#FFFFFF' },
+               modality: assignedModality,
+               belt: assignedBelt,
                last_graduation_date: new Date().toISOString().split('T')[0],
                tuition_fee: 0,
                payments: [],
@@ -314,7 +330,7 @@ const App: React.FC = () => {
                graduation_history: [{
                    id: Date.now().toString(),
                    date: new Date().toISOString().split('T')[0],
-                   belt: { name: 'Branca', color: '#FFFFFF' },
+                   belt: assignedBelt,
                    grade: 0,
                    examName: 'Início'
                }]
