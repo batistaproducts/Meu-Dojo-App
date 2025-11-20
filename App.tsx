@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData, Notification } from './types';
+import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData, Notification, RolePermission } from './types';
 import { getPermissionsForRole, AppView } from './services/roleService';
 import { fetchUnreadNotifications, markNotificationsAsRead } from './services/notificationService';
 
@@ -31,7 +31,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   const [view, setView] = useState<AppView>('dashboard');
-  const [permissions, setPermissions] = useState<AppView[]>([]);
+  const [permissions, setPermissions] = useState<RolePermission[]>([]);
   
   // Master/Admin Data
   const [dojo, setDojo] = useState<Dojo | null>(null);
@@ -564,7 +564,8 @@ const App: React.FC = () => {
 
   // --- Render Logic ---
   const renderMasterView = () => {
-    if (!permissions.includes(view)) {
+    // Check permissions using the new RolePermission object structure
+    if (!permissions.some(p => p.view === view)) {
         if (view !== 'dashboard') {
              setView('dashboard');
              return null;

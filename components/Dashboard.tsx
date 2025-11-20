@@ -8,11 +8,11 @@ import TrophyIcon from './icons/TrophyIcon';
 import ClipboardCheckIcon from './icons/ClipboardCheckIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import { AppView } from '../services/roleService';
-import { Student } from '../types';
+import { Student, RolePermission } from '../types';
 
 interface DashboardProps {
     onNavigate: (view: AppView) => void;
-    permissions: AppView[];
+    permissions: RolePermission[];
     students: Student[];
 }
 
@@ -66,50 +66,41 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
         return `${capitalizedMonth}/${now.getFullYear()}`;
     }, []);
 
-    const availableCards: Omit<DashboardCardProps, 'onClick'>[] = [
-        {
-            view: 'dojo_manager',
-            title: 'Gerenciar Dojo',
+    // Base definition for cards with descriptions and icons. Titles will be overridden.
+    const baseCards: Record<string, Omit<DashboardCardProps, 'onClick' | 'title'>> = {
+        'dojo_manager': {
             description: 'Cadastre sua academia, alunos e mensalidades.',
             icon: <UserIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'store',
-            title: 'Loja',
+        'store': {
             description: 'Gerencie produtos e links de afiliados.',
             icon: <ShoppingBagIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'metrics',
-            title: 'Métricas',
+        'metrics': {
             description: 'Visualize dashboards e indicadores de performance.',
             icon: <ChartBarIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'public_dojo_page',
-            title: 'Minha Página',
+        'public_dojo_page': {
             description: 'Visualize sua página pública do Dojo.',
             icon: <GlobeIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'championships',
-            title: 'Campeonatos',
+        'championships': {
             description: 'Cadastre eventos e resultados.',
             icon: <MedalIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'exams',
-            title: 'Provas',
+        'exams': {
             description: 'Crie e edite provas de graduação.',
             icon: <TrophyIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
-        {
-            view: 'grading',
-            title: 'Próxima Graduação',
+        'grading': {
             description: 'Agende e avalie exames de faixa.',
             icon: <ClipboardCheckIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+        },
+        'feed': {
+            description: 'Interaja com a comunidade.',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         }
-    ];
+    };
 
     // Financial Card (Special Logic)
     const financialCard = (
@@ -172,13 +163,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
         />
     );
 
-    const cardsToDisplay = availableCards
-        .filter(card => card.view && permissions.includes(card.view))
-        .map(card => (
+    const cardsToDisplay = permissions
+        .filter(p => baseCards[p.view]) // Only show if we have a card definition for it
+        .map(p => (
             <Card 
-                key={card.view} 
-                {...card} 
-                onClick={() => card.view && onNavigate(card.view)} 
+                key={p.view} 
+                title={p.title} // Dynamic Title from DB
+                description={baseCards[p.view].description}
+                icon={baseCards[p.view].icon}
+                onClick={() => onNavigate(p.view)} 
+                view={p.view}
             />
         ));
 
@@ -187,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
             <h2 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white font-cinzel">Painel Principal</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
                 {/* Render Financial Card First if user has dojo_manager permission (implies Master) */}
-                {permissions.includes('dojo_manager') && financialCard}
+                {permissions.some(p => p.view === 'dojo_manager') && financialCard}
                 
                 {/* Render Navigation Cards */}
                 {cardsToDisplay}

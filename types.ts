@@ -272,3 +272,11 @@ export interface Notification {
   read: boolean;
   created_at: string;
 }
+
+// --- Roles & Permissions ---
+import { AppView } from './services/roleService';
+
+export interface RolePermission {
+    view: AppView;
+    title: string;
+}
