@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData } from './types';
@@ -18,6 +19,7 @@ import StoreView from './components/store/StoreView';
 import SysAdminPanel from './components/admin/SysAdminPanel';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import MetricsView from './components/metrics/MetricsView';
+import FeedView from './components/feed/FeedView';
 import SpinnerIcon from './components/icons/SpinnerIcon';
 import DownloadIcon from './components/icons/DownloadIcon';
 
@@ -215,7 +217,7 @@ const App: React.FC = () => {
 
   const handleNavigate = (v: AppView) => {
       // When Admin navigates to top-level dashboards, reset the specific Dojo context to show global data
-      if (userRole === 'S' && (v === 'dashboard' || v === 'sysadmin_panel' || v === 'metrics' || v === 'admin_store')) {
+      if (userRole === 'S' && (v === 'dashboard' || v === 'sysadmin_panel' || v === 'metrics' || v === 'admin_store' || v === 'admin_community')) {
           setDojo(null);
           // Reload global data to ensure it's fresh if they were just editing a specific dojo
           if (v === 'dashboard' || v === 'metrics') fetchSysAdminData();
@@ -548,8 +550,8 @@ const App: React.FC = () => {
         }
     }
     
-    // Allow access to Admin Store / SysAdmin Panel even without a dojo
-    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M') && (view !== 'sysadmin_panel' || userRole !== 'S') && (view !== 'metrics')) {
+    // Allow access to Admin Store / SysAdmin Panel / Metrics / Feed even without a dojo
+    if (!dojo && (view !== 'dashboard') && (view !== 'admin_store' || userRole !== 'S') && (view !== 'store' || userRole !== 'M') && (view !== 'sysadmin_panel' || userRole !== 'S') && (view !== 'metrics') && (view !== 'feed' || userRole !== 'M') && (view !== 'admin_community')) {
       return <CreateDojoForm onDojoCreated={handleDojoCreated} />;
     }
     
@@ -595,6 +597,20 @@ const App: React.FC = () => {
             onEditProduct={handleEditProduct}
             onDeleteProduct={handleDeleteProduct}
         />;
+      case 'feed': // Feed Mestre
+          return <FeedView 
+                user={user!} 
+                userRole={userRole!} 
+                currentDojoId={dojo?.id || null} 
+                currentUserAvatar={dojo?.logo_url} // Mestre usa Logo do Dojo
+            />;
+      case 'admin_community': // Feed Admin
+          return <FeedView 
+                user={user!} 
+                userRole={userRole!} 
+                currentDojoId={null} 
+                allDojos={allDojos} 
+            />;
       case 'metrics':
         return <MetricsView students={students} dojo={dojo} />;
       case 'sysadmin_panel':

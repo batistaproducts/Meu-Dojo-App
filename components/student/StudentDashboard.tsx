@@ -12,6 +12,7 @@ import UploadIcon from '../icons/UploadIcon';
 import UserIcon from '../icons/UserIcon';
 import StoreView from '../store/StoreView';
 import DiplomaGenerator from '../../features/diploma/DiplomaGenerator';
+import FeedView from '../feed/FeedView';
 
 interface StudentDashboardProps {
     student: (Student & { dojos: Dojo | null }) | null;
@@ -101,7 +102,7 @@ const EditProfileModal: React.FC<{
 
 // --- Main Dashboard Component ---
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, scheduledEvent, scheduledExam, studentRequest }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'exams' | 'store' | 'diploma'>('profile');
+    const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'team' | 'exams' | 'store' | 'diploma'>('feed');
     const [teamStudents, setTeamStudents] = useState<Student[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [dojo, setDojo] = useState<Dojo | null>(student?.dojos || null);
@@ -277,6 +278,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                             <div className="mb-6 overflow-x-auto">
                                 <nav className="flex space-x-4 border-b border-gray-200 dark:border-gray-700 min-w-max">
                                     <button
+                                        onClick={() => setActiveTab('feed')}
+                                        className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'feed' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                    >
+                                        Mural
+                                    </button>
+                                    <button
                                         onClick={() => setActiveTab('profile')}
                                         className={`py-2 px-4 border-b-2 font-medium transition-colors ${activeTab === 'profile' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
                                     >
@@ -299,6 +306,15 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, user, sche
                         )}
 
                         {/* Content Area */}
+                        {activeTab === 'feed' && currentStudent && (
+                            <FeedView 
+                                user={user} 
+                                userRole="A" 
+                                currentDojoId={currentStudent.dojo_id}
+                                currentUserAvatar={currentStudent.profile_picture_url} // Student uses their profile picture
+                            />
+                        )}
+
                         {activeTab === 'profile' && currentStudent && (
                             <div>
                                 <div className="flex justify-end mb-4">

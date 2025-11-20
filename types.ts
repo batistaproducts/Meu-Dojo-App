@@ -221,3 +221,42 @@ export interface DiplomaData {
   customNotes?: string;
   existingDiplomaImage?: string | null;
 }
+
+// --- Community / Feed Types ---
+
+export interface Post {
+  id: string;
+  dojo_id: string | null; // null implies Global/Admin post
+  author_id: string;
+  author_role: UserRole;
+  author_name: string;
+  author_avatar_url?: string;
+  content: string;
+  image_url?: string;
+  created_at: string;
+  likes_count?: number;
+  dislikes_count?: number;
+  comments_count?: number;
+  user_reaction?: 'like' | 'dislike' | null; // Helper for UI
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_name: string;
+  author_avatar_url?: string;
+  content: string;
+  created_at: string;
+  likes_count?: number;
+  dislikes_count?: number;
+  user_reaction?: 'like' | 'dislike' | null; // Helper for UI
+}
+
+export interface Reaction {
+  id: string;
+  user_id: string;
+  target_id: string; // Post ID or Comment ID
+  target_type: 'post' | 'comment';
+  type: 'like' | 'dislike';
+}

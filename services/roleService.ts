@@ -15,7 +15,9 @@ export type AppView =
     | 'admin_store'
     | 'store'
     | 'sysadmin_panel'
-    | 'metrics'; // Nova view de métricas
+    | 'metrics'
+    | 'feed' // Mestre Feed
+    | 'admin_community'; // Admin Feed View
 
 /**
  * Fetches permissions from the 'system_roles' table in Supabase based on a user's role.
