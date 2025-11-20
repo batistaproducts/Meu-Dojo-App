@@ -66,39 +66,55 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
         return `${capitalizedMonth}/${now.getFullYear()}`;
     }, []);
 
-    // Base definition for cards with descriptions and icons. Titles will be overridden.
-    const baseCards: Record<string, Omit<DashboardCardProps, 'onClick' | 'title'>> = {
+    // Base definition for descriptions. Icons here act as fallbacks.
+    const baseCards: Record<string, { description: string; fallbackIcon: React.ReactNode }> = {
         'dojo_manager': {
             description: 'Cadastre sua academia, alunos e mensalidades.',
-            icon: <UserIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <UserIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'store': {
             description: 'Gerencie produtos e links de afiliados.',
-            icon: <ShoppingBagIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <ShoppingBagIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'metrics': {
             description: 'Visualize dashboards e indicadores de performance.',
-            icon: <ChartBarIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <ChartBarIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'public_dojo_page': {
             description: 'Visualize sua página pública do Dojo.',
-            icon: <GlobeIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <GlobeIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'championships': {
             description: 'Cadastre eventos e resultados.',
-            icon: <MedalIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <MedalIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'exams': {
             description: 'Crie e edite provas de graduação.',
-            icon: <TrophyIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <TrophyIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'grading': {
             description: 'Agende e avalie exames de faixa.',
-            icon: <ClipboardCheckIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+            fallbackIcon: <ClipboardCheckIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
         },
         'feed': {
             description: 'Interaja com a comunidade.',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            fallbackIcon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+        },
+        'admin_store': {
+            description: 'Gestão global de produtos da loja.',
+            fallbackIcon: <ShoppingBagIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+        },
+        'admin_community': {
+            description: 'Moderação e postagens globais.',
+            fallbackIcon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+        },
+        'student_dashboard': {
+            description: 'Acesso do aluno.',
+            fallbackIcon: <UserIcon className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" />
+        },
+        'sysadmin_panel': {
+             description: 'Configurações globais do sistema.',
+             fallbackIcon: <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 16v-2m0-10v2m0 6v2m-6-10H4m16 0h-2M6 12H4m16 0h-2m-6-6h2m-2 16h2m-16-8h2m10 0h2" /></svg>
         }
     };
 
@@ -165,16 +181,34 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, permissions, students
 
     const cardsToDisplay = permissions
         .filter(p => baseCards[p.view]) // Only show if we have a card definition for it
-        .map(p => (
-            <Card 
-                key={p.view} 
-                title={p.title} // Dynamic Title from DB
-                description={baseCards[p.view].description}
-                icon={baseCards[p.view].icon}
-                onClick={() => onNavigate(p.view)} 
-                view={p.view}
-            />
-        ));
+        .map(p => {
+            const cardDef = baseCards[p.view];
+            
+            // Prefer the dynamic icon from permission (DB), fallback to static definition
+            let iconNode = cardDef.fallbackIcon;
+            
+            if (p.icon_code) {
+                // Inject styling classes into the SVG string if needed or wrap it
+                // We wrap it and force child SVG to fill container
+                iconNode = (
+                    <div 
+                        className="w-12 h-12 mb-2 text-gray-800 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors [&>svg]:w-full [&>svg]:h-full"
+                        dangerouslySetInnerHTML={{ __html: p.icon_code }} 
+                    />
+                );
+            }
+
+            return (
+                <Card 
+                    key={p.view} 
+                    title={p.title} // Dynamic Title from DB
+                    description={cardDef.description}
+                    icon={iconNode}
+                    onClick={() => onNavigate(p.view)} 
+                    view={p.view}
+                />
+            );
+        });
 
     return (
         <div className="animate-fade-in">

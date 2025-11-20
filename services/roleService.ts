@@ -32,10 +32,10 @@ export const getPermissionsForRole = async (role: UserRole): Promise<RolePermiss
     }
 
     try {
-        // Query the 'system_roles' table for page_id and title matching the user's role.
+        // Query the 'system_roles' table for page_id, title, and icon_code matching the user's role.
         const { data, error } = await supabase
             .from('system_roles')
-            .select('page_id, title')
+            .select('page_id, title, icon_code')
             .eq('user_role_type', role);
 
         if (error) {
@@ -47,7 +47,8 @@ export const getPermissionsForRole = async (role: UserRole): Promise<RolePermiss
         // Map to RolePermission interface
         return data.map(item => ({
             view: item.page_id as AppView,
-            title: item.title || formatDefaultTitle(item.page_id) // Fallback if title is null
+            title: item.title || formatDefaultTitle(item.page_id), // Fallback if title is null
+            icon_code: item.icon_code
         }));
 
     } catch (err) {

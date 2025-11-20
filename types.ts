@@ -279,4 +279,5 @@ import { AppView } from './services/roleService';
 export interface RolePermission {
     view: AppView;
     title: string;
+    icon_code?: string;
 }

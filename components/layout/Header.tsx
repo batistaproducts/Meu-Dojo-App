@@ -3,34 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, RolePermission } from '../../types';
 import { AppView } from '../../services/roleService';
 import MenuIcon from '../icons/MenuIcon';
-import UserIcon from '../icons/UserIcon';
-import TrophyIcon from '../icons/TrophyIcon';
-import ClipboardCheckIcon from '../icons/ClipboardCheckIcon';
-import GlobeIcon from '../icons/GlobeIcon';
-import CertificateIcon from '../icons/CertificateIcon';
-import MedalIcon from '../icons/MedalIcon';
-import ShoppingBagIcon from '../icons/ShoppingBagIcon';
-import ChartBarIcon from '../icons/ChartBarIcon';
 import Logo from '../icons/Logo';
 import NotificationBell from '../notifications/NotificationBell';
-
-// Mapping of views to icons
-const ICON_MAP: Record<AppView, React.ReactNode> = {
-    'dashboard': <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
-    'dojo_manager': <UserIcon className="h-5 w-5" />,
-    'feed': <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
-    'store': <ShoppingBagIcon className="h-5 w-5" />,
-    'metrics': <ChartBarIcon className="h-5 w-5" />,
-    'public_dojo_page': <GlobeIcon className="h-5 w-5" />,
-    'championships': <MedalIcon className="h-5 w-5" />,
-    'exams': <TrophyIcon className="h-5 w-5" />,
-    'grading': <ClipboardCheckIcon className="h-5 w-5" />,
-    'admin_store': <ShoppingBagIcon className="h-5 w-5" />,
-    'admin_community': <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
-    'sysadmin_panel': <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 16v-2m0-10v2m0 6v2m-6-10H4m16 0h-2M6 12H4m16 0h-2m-6-6h2m-2 16h2m-16-8h2m10 0h2" /></svg>,
-    'diploma_generator': <CertificateIcon className="h-5 w-5" />,
-    'student_dashboard': <UserIcon className="h-5 w-5" />
-};
 
 interface HeaderProps {
     user: User;
@@ -81,7 +55,15 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, permissions
                            <nav className="py-2">
                                {permissions.map(perm => (
                                    <a key={perm.view} onClick={() => handleNav(perm.view)} className="flex items-center gap-3 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                        {ICON_MAP[perm.view]}
+                                        {perm.icon_code ? (
+                                            <span 
+                                                className="w-5 h-5 text-current" 
+                                                dangerouslySetInnerHTML={{ __html: perm.icon_code }} 
+                                            />
+                                        ) : (
+                                            // Fallback blank icon
+                                            <div className="w-5 h-5 bg-gray-300 rounded-full opacity-50"></div>
+                                        )}
                                         <span>{perm.title}</span>
                                    </a>
                                ))}
