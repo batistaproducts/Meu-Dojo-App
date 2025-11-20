@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
 import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData } from './types';
@@ -18,8 +17,9 @@ import PublicDojoPage from './components/dojo/PublicDojoPage';
 import StoreView from './components/store/StoreView';
 import SysAdminPanel from './components/admin/SysAdminPanel';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
-import MetricsView from './components/metrics/MetricsView'; // Import new view
+import MetricsView from './components/metrics/MetricsView';
 import SpinnerIcon from './components/icons/SpinnerIcon';
+import DownloadIcon from './components/icons/DownloadIcon';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -53,6 +53,8 @@ const App: React.FC = () => {
   const [scheduledExam, setScheduledExam] = useState<Exam | null>(null);
   const [currentStudentRequest, setCurrentStudentRequest] = useState<(StudentRequest & { dojos: { name: string } | null }) | null>(null);
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     // Check active session
@@ -73,8 +75,18 @@ const App: React.FC = () => {
           setLoading(false);
       }
     });
+    
+    // PWA Installation Handler
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    return () => subscription.unsubscribe();
+    return () => {
+        subscription.unsubscribe();
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   const handleUserSession = async (sessionUser: User) => {
@@ -191,6 +203,15 @@ const App: React.FC = () => {
   };
 
   // --- Handlers ---
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+    }
+  };
 
   const handleNavigate = (v: AppView) => {
       // When Admin navigates to top-level dashboards, reset the specific Dojo context to show global data
@@ -592,27 +613,46 @@ const App: React.FC = () => {
   };
 
   if (loading) {
-      return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-              <SpinnerIcon className="w-16 h-16 text-red-600"/>
-          </div>
-      );
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+             <SpinnerIcon className="w-16 h-16 text-red-600" />
+        </div>
+    );
   }
 
   if (!user) {
-      return <Auth onAuthSuccess={() => { /* managed by listener */ }} />;
-  }
-  
-  if (userRole === 'A') {
-      return <StudentDashboard student={currentStudent} user={user} scheduledEvent={scheduledEvent} scheduledExam={scheduledExam} studentRequest={currentStudentRequest} />;
+      return <Auth onAuthSuccess={() => {}} />; // Auth handles session update via listener
   }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white font-montserrat">
       <Header user={user} onNavigate={handleNavigate} onLogout={() => supabase.auth.signOut()} permissions={permissions} />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {renderMasterView()}
+      <main className="container mx-auto px-4 py-8">
+        {userRole === 'A' ? (
+             <StudentDashboard 
+                student={currentStudent} 
+                user={user} 
+                scheduledEvent={scheduledEvent} 
+                scheduledExam={scheduledExam} 
+                studentRequest={currentStudentRequest}
+            />
+        ) : (
+            renderMasterView()
+        )}
       </main>
+
+      {/* PWA Install Prompt */}
+      {deferredPrompt && (
+        <div className="fixed bottom-4 right-4 z-50 animate-bounce">
+            <button 
+                onClick={handleInstallClick}
+                className="flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors font-bold"
+            >
+                <DownloadIcon className="w-5 h-5" />
+                Instalar App
+            </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,17 @@
+{
+  "name": "Meu Dojo",
+  "short_name": "Meu Dojo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc2626",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' rx='60' fill='black'/%3E%3Cpath d='M20,60 Q150,30 280,60 L285,50 Q150,15 15,50 Z' fill='white'/%3E%3Crect x='40' y='85' width='220' height='15' rx='2' fill='white'/%3E%3Crect x='75' y='70' width='20' height='140' fill='white'/%3E%3Crect x='205' y='70' width='20' height='140' fill='white'/%3E%3Crect x='145' y='85' width='10' height='30' fill='white'/%3E%3Ctext x='150' y='175' text-anchor='middle' font-size='75' font-family='serif' font-weight='bold' fill='white'%3E首%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
