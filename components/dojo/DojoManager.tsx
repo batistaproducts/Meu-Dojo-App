@@ -5,12 +5,15 @@ import StudentProfile from '../student/StudentProfile';
 import StudentForm from '../student/StudentForm';
 import GraduationModal from './GraduationModal';
 import DojoSettingsModal from './DojoSettingsModal';
+import NotificationSendModal from '../notifications/NotificationSendModal';
+import { post_notification } from '../../services/notificationService';
 import PlusIcon from '../icons/PlusIcon';
 import UserIcon from '../icons/UserIcon';
 import EditIcon from '../icons/EditIcon';
 import TrashIcon from '../icons/TrashIcon';
 import SpinnerIcon from '../icons/SpinnerIcon';
 import CertificateIcon from '../icons/CertificateIcon';
+import BellIcon from '../icons/BellIcon';
 import PublicStudentProfile from '../student/PublicStudentProfile';
 
 interface DojoManagerProps {
@@ -37,6 +40,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isGraduationModalOpen, setIsGraduationModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [formStudent, setFormStudent] = useState<Student | null>(null);
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [studentToUnlink, setStudentToUnlink] = useState<Student | null>(null);
@@ -121,6 +125,26 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
         onNavigateToDiplomaGenerator(selected);
     }
   }
+
+  const handleOpenNotificationModal = () => {
+      if (selectedStudentIds.size > 0) {
+          setIsNotificationModalOpen(true);
+      }
+  }
+
+  const handleSendNotifications = async (category: 'Aviso' | 'Cobrança', message: string, targetUserIds: string[]) => {
+      const type = category === 'Cobrança' ? 'warning' : 'info';
+      const title = category === 'Cobrança' ? 'Aviso Financeiro' : 'Comunicado do Dojo';
+      
+      // Send to all targets
+      // Note: In a real production app, you might want to use a single batch RPC call to Supabase
+      // instead of looping await calls for performance, but for this scale, loop is fine.
+      for (const userId of targetUserIds) {
+          await post_notification(userId, title, message, type);
+      }
+      
+      setSelectedStudentIds(new Set());
+  };
 
   const handleScheduleGraduationWrapper = async (examId: string, date: string) => {
     const attendees = [...selectedStudentIds].map(id => ({ studentId: id }));
@@ -209,6 +233,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                 >
                     <CertificateIcon className="w-4 h-4" />
                     Gerar Certificados ({selectedStudentIds.size})
+                </button>
+                <button
+                    onClick={handleOpenNotificationModal}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-semibold text-sm"
+                >
+                    <BellIcon className="w-4 h-4" />
+                    Notificar ({selectedStudentIds.size})
                 </button>
                 </>
             )}
@@ -359,6 +390,15 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
             onClose={() => setIsGraduationModalOpen(false)}
             onSchedule={handleScheduleGraduationWrapper}
         />
+      )}
+
+      {isNotificationModalOpen && (
+          <NotificationSendModal 
+            students={students.filter(s => selectedStudentIds.has(s.id!))}
+            links={studentUserLinks}
+            onClose={() => setIsNotificationModalOpen(false)}
+            onSend={handleSendNotifications}
+          />
       )}
       
       {isSettingsModalOpen && (
