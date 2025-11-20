@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from './services/supabaseClient';
-import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData } from './types';
+import { User, UserRole, Dojo, Student, Exam, StudentUserLink, StudentRequest, GraduationEvent, Championship, Product, StudentGrading, Fight, DojoCreationData, Notification } from './types';
 import { getPermissionsForRole, AppView } from './services/roleService';
+import { fetchUnreadNotifications, markNotificationsAsRead } from './services/notificationService';
 
 import Auth from './components/Auth';
 import Header from './components/layout/Header';
@@ -20,6 +21,7 @@ import SysAdminPanel from './components/admin/SysAdminPanel';
 import DiplomaGenerator from './features/diploma/DiplomaGenerator';
 import MetricsView from './components/metrics/MetricsView';
 import FeedView from './components/feed/FeedView';
+import NotificationModal from './components/notifications/NotificationModal';
 import SpinnerIcon from './components/icons/SpinnerIcon';
 import DownloadIcon from './components/icons/DownloadIcon';
 
@@ -57,6 +59,10 @@ const App: React.FC = () => {
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Notifications State
+  const [initialNotifications, setInitialNotifications] = useState<Notification[]>([]);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   useEffect(() => {
     // Check active session
@@ -97,6 +103,13 @@ const App: React.FC = () => {
       setCurrentUser(sessionUser);
       
       try {
+        // Check for unread notifications on login
+        const unread = await fetchUnreadNotifications(sessionUser.id);
+        if (unread.length > 0) {
+            setInitialNotifications(unread);
+            setShowNotificationModal(true);
+        }
+
         // Determine role
         let role: UserRole = 'M'; // Default
         
@@ -123,6 +136,14 @@ const App: React.FC = () => {
       } finally {
           setLoading(false);
       }
+  };
+
+  const handleCloseNotificationModal = async () => {
+      // Mark shown notifications as read
+      const ids = initialNotifications.map(n => n.id);
+      await markNotificationsAsRead(ids);
+      setShowNotificationModal(false);
+      setInitialNotifications([]);
   };
 
   const fetchMasterData = async (userId: string) => {
@@ -656,6 +677,14 @@ const App: React.FC = () => {
             renderMasterView()
         )}
       </main>
+
+      {/* Notification Modal on Login */}
+      {showNotificationModal && (
+          <NotificationModal 
+            notifications={initialNotifications}
+            onClose={handleCloseNotificationModal}
+          />
+      )}
 
       {/* PWA Install Prompt */}
       {deferredPrompt && (

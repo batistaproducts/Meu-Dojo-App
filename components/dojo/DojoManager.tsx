@@ -151,6 +151,11 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
       }
   }
 
+  // Updated logic: Checks if there is ANY open payment
+  const hasPendingPayments = (student: Student) => {
+      return student.payments && student.payments.some(p => p.status === 'open');
+  };
+
   if (view === 'profile' && selectedStudent) {
     return <StudentProfile 
         student={selectedStudent} 
@@ -254,6 +259,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                         <th scope="col" className="px-6 py-3">Modalidade</th>
                         <th scope="col" className="px-6 py-3">Graduação</th>
                         <th scope="col" className="px-6 py-3">Última Graduação</th>
+                        <th scope="col" className="px-6 py-3 text-center">$</th>
                         <th scope="col" className="px-6 py-3 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -274,6 +280,13 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                         </span>
                         </td>
                         <td className="px-6 py-4">{new Date(student.last_graduation_date + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                        <td className="px-6 py-4 text-center">
+                             {hasPendingPayments(student) ? (
+                                 <span className="px-2 py-1 text-xs font-bold text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-300 rounded-full">Pendente</span>
+                             ) : (
+                                 <span className="px-2 py-1 text-xs font-bold text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-300 rounded-full">Em dia</span>
+                             )}
+                        </td>
                         <td className="px-6 py-4 text-right flex justify-end items-center gap-4">
                         <button onClick={() => handleViewProfile(student)} className="font-medium text-blue-600 dark:text-blue-400 hover:underline" title="Ver Perfil"><UserIcon className="w-5 h-5"/></button>
                         <button onClick={() => handleOpenForm(student)} className="font-medium text-yellow-600 dark:text-yellow-400 hover:underline" title="Editar Aluno"><EditIcon className="w-5 h-5"/></button>
@@ -282,7 +295,7 @@ const DojoManager: React.FC<DojoManagerProps> = ({ dojo, students, exams, studen
                     </tr>
                     )) : (
                         <tr>
-                            <td colSpan={6} className="text-center py-8 text-gray-400 dark:text-gray-500">Nenhum aluno cadastrado ainda.</td>
+                            <td colSpan={7} className="text-center py-8 text-gray-400 dark:text-gray-500">Nenhum aluno cadastrado ainda.</td>
                         </tr>
                     )}
                 </tbody>

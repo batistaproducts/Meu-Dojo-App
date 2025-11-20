@@ -12,6 +12,7 @@ import MedalIcon from '../icons/MedalIcon';
 import ShoppingBagIcon from '../icons/ShoppingBagIcon';
 import ChartBarIcon from '../icons/ChartBarIcon';
 import Logo from '../icons/Logo';
+import NotificationBell from '../notifications/NotificationBell';
 
 interface NavLink {
     view: AppView;
@@ -69,6 +70,9 @@ const Header: React.FC<HeaderProps> = ({ user, onNavigate, onLogout, permissions
                 <Logo className="h-10" />
             </div>
             <div className="flex items-center gap-4">
+                {/* Notification Bell */}
+                <NotificationBell user={user} />
+
                 <div className="relative" ref={menuRef}>
                     <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         <MenuIcon className="w-5 h-5" />
